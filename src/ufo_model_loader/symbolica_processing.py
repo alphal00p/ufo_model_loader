@@ -20,7 +20,7 @@ except BaseException as e:
     SYMBOLICA_AVAILABLE = False
 
 
-def expression_to_string_safe(expr: Expression, canonical=False) -> str:
+def expression_to_string_safe(expr: Expression, canonical=True) -> str:
     try:
         if canonical:
             return expr.to_canonical_string()
@@ -41,7 +41,7 @@ def expression_to_string_safe(expr: Expression, canonical=False) -> str:
             "Symbolica (@%s)failed to cast expression to string:\n%s\nwith exception:\n%s", symbolica.__file__, expr, exception)
 
 
-def expression_to_string(expr: Expression | None, canonical=False) -> str | None:
+def expression_to_string(expr: Expression | None, canonical=True) -> str | None:
     if expr is None:
         return None
     try:
@@ -103,14 +103,14 @@ def parse_python_expression_safe(expr: str) -> Expression:
 
     sanitized_expr = expr.replace('**', '^')\
         .replace('cmath.sqrt', 'sqrt')\
-        .replace('cmath.pi', 'pi')\
+        .replace('cmath.pi', '𝜋')\
         .replace('math.sqrt', 'sqrt')\
-        .replace('math.pi', 'pi')
+        .replace('math.pi', '𝜋')
     sanitized_expr = replace_pseudo_floats(sanitized_expr)
     try:
-        sb_expr = Expression.parse(sanitized_expr)
+        sb_expr = Expression.parse(sanitized_expr, default_namespace='UFO')
         sb_expr = sb_expr.replace(
-            E('complex(x_,y_)'), E('x_+y_ 1𝑖'), repeat=True)
+            E('UFO::complex(x_,y_)'), E('x_+y_ 1𝑖'), repeat=True)
     except Exception as exception:  # pylint: disable=broad-except
         raise UFOModelLoaderError(
             "Symbolica (@%s) failed to parse expression:\n%s\nwith exception:\n%s", symbolica.__file__, sanitized_expr, exception)

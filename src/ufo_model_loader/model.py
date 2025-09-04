@@ -691,18 +691,18 @@ class Model(object):
     @classmethod
     def set_model_functions(cls):
         cls.model_functions: dict[Callable[[Expression], Expression], Callable[[list[complex]], complex]] = {  # type: ignore
-            S('Theta'): lambda xs: 0. if xs[0].real < 0. else 1.,
-            S('tan'): lambda xs: cmath.tan(xs[0]),
-            S('acos'): lambda xs: cmath.acos(xs[0]),
-            S('asin'): lambda xs: cmath.asin(xs[0]),
-            S('atan'): lambda xs: cmath.atan(xs[0]),
-            S('complexconjugate'): lambda xs: xs[0].conjugate(),
-            S('complex'): lambda xs: xs[0]+complex(0, 1)*xs[1],
-            # These functions are typically only used in NLO models
-            S('cond'): lambda xs: xs[1] if abs(xs[0]) == 0. else xs[2],
-            S('reglog'): lambda xs: Model.model_function_reglog(xs),
-            S('reglogp'): lambda xs: Model.model_function_reglogp(xs),
-            S('reglogm'): lambda xs: Model.model_function_reglogm(xs),
+            S('UFO::Theta'): lambda xs: 0. if xs[0].real < 0. else 1.,
+            S('UFO::tan'): lambda xs: cmath.tan(xs[0]),
+            S('UFO::acos'): lambda xs: cmath.acos(xs[0]),
+            S('UFO::asin'): lambda xs: cmath.asin(xs[0]),
+            S('UFO::atan'): lambda xs: cmath.atan(xs[0]),
+            S('UFO::complexconjugate'): lambda xs: xs[0].conjugate(),
+            S('UFO::complex'): lambda xs: xs[0]+complex(0, 1)*xs[1],
+            # TUFO::hese functions are typically only used in NLO models
+            S('UFO::cond'): lambda xs: xs[1] if abs(xs[0]) == 0. else xs[2],
+            S('UFO::reglog'): lambda xs: Model.model_function_reglog(xs),
+            S('UFO::reglogp'): lambda xs: Model.model_function_reglogp(xs),
+            S('UFO::reglogm'): lambda xs: Model.model_function_reglogm(xs),
         }
 
     @classmethod
@@ -714,8 +714,8 @@ class Model(object):
     @classmethod
     def set_model_variables(cls):
         cls.model_variables: dict[Expression, complex] = {  # type: ignore
-            S('I'): complex(0, 1),
-            S('pi'): cmath.pi
+            S('UFO::I'): complex(0, 1),
+            S('UFO::pi'): cmath.pi
         }
 
     @classmethod
@@ -753,7 +753,7 @@ class Model(object):
 
         param_variables: dict[str, dict[str, Any]] = {
             p.name: {
-                'var': S(p.name),
+                'var': S(f'UFO::{p.name}'),
                 'dependent_params': p.expression.get_all_symbols(False)
             } for p in remaining_parameters if p.expression is not None
         }
@@ -996,7 +996,7 @@ class Model(object):
             if parameter.value is None:
                 raise UFOModelLoaderError(
                     f"The value of parameter {parameter.name} has not been set yet")
-            parameter_map[S(parameter.name)] = parameter.value
+            parameter_map[S(f'UFO::{parameter.name}')] = parameter.value
         return parameter_map
 
     def update_coupling_values(self) -> None:
@@ -1012,8 +1012,7 @@ class Model(object):
         for parameter in self.get_external_parameters():
             parameter.value = input_card[optionally_lower_external_parameter_name(
                 parameter.name)]
-            evaluation_variables[S(
-                parameter.name)] = parameter.value
+            evaluation_variables[S(f'UFO::{parameter.name}')] = parameter.value
 
         # Collect constant internal parameters such as ZERO
         for parameter in self.get_internal_parameters():
@@ -1021,8 +1020,7 @@ class Model(object):
                 if parameter.value is None:
                     raise UFOModelLoaderError(
                         "Internal parameter '{parameter.name}' has no value nor expression.")
-                evaluation_variables[S(
-                    parameter.name)] = parameter.value
+                evaluation_variables[S(f'UFO::{parameter.name}')] = parameter.value
 
         # Now update all other dependent variables
         # Note that this is done in a loop because some parameters may depend on other parameters
@@ -1032,12 +1030,12 @@ class Model(object):
             found_new_evaluation = False
             found_unevaluated = False
             for parameter in self.get_internal_parameters():
-                parameter_Expression = S(parameter.name)
+                parameter_Expression = S(f'UFO::{parameter.name}')
                 if parameter_Expression not in evaluation_variables:
                     if parameter.expression is None:
                         raise UFOModelLoaderError(
                             f"Internal parameter '{parameter.name}' has no value nor expression.")
-                    # print([expression_to_string_safe(f(S('x')))
+                    # print([expression_to_string_safe(f(S('UFO::x')))
                     #       for f in self.get_model_functions()])
                     # print(parameter.expression)
                     if evaluation_round == Model.MAX_ALLOWED_RECURSION_IN_PARAMETER_EVALUATION:

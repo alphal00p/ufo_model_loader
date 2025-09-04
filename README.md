@@ -5,14 +5,20 @@ It can:
 
 - Load UFO models or pre-exported JSON models
 - Apply restrictions from parameter cards
+- Evaluates all dependent parameters from input parameters using [Symbolica](https://symbolica.io/)
 - Simplify couplings and disable zero contributions
 - Export the result as a flat JSON model
+
+Limitations:
+
+- Only tree-level information is being retained and exported
+- Current version only supports export of model expression in the [Symbolica](https://symbolica.io/) notation
 
 ---
 
 ## Installation
 
-From PyPI (once published):
+From PyPI:
 
 ```bash
 pip install ufo-model-loader

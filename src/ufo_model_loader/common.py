@@ -157,14 +157,14 @@ def setup_logging(prefix_format) -> logging.StreamHandler[TextIO]:
 def verbose_json_dump(obj: Any, json_look: JSONLook = JSONLook.VERBOSE) -> str:
     match json_look:
         case JSONLook.COMPACT:
-            return json.dumps(obj, sort_keys=True)
+            return json.dumps(obj, sort_keys=True, ensure_ascii=False)
         case JSONLook.VERBOSE:
-            return json.dumps(obj, indent=2, sort_keys=True)
+            return json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False)
         case JSONLook.PRETTY:
             if not JSBEAUTIFIER_AVAILABLE:
                 raise UFOModelLoaderError(
                     "JSBeautifier not available, cannot use 'pretty' JSON look. Install this dependencies with e.g. `pip install jsbeautifier`.")
-            json_dump = json.dumps(obj, sort_keys=True)
+            json_dump = json.dumps(obj, sort_keys=True, ensure_ascii=False)
             jsbeautifier_options = jsbeautifier.default_options()
             jsbeautifier_options.indent_size = 2
             return jsbeautifier.beautify(json_dump, jsbeautifier_options)
