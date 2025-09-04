@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ufo_model_loader"
+version = "0.1.0"
+description = "Tool for loading high-energy physics models in the UFO format and export them in flat JSON format."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Valentin Hirschi", email = "valentin.hirschi@gmail.com" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = ["symbolica==0.18.0"]
+
+# Exposes a console command installed by the wheel
+[project.scripts]
+ufo_model_loader = "ufo_model_loader.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ufo_model_loader*", "ufo_model_loader_tests*"]
+
+# include everything under ufo_model_loader/data in the wheel
+[tool.setuptools.package-data]
+ufo_model_loader = ["data/**"]
+
+# optional extras
+[project.optional-dependencies]
+prettyjson = ["jsbeautifier", "pytest"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
