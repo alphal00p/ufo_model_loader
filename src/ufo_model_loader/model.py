@@ -773,6 +773,7 @@ class Model(object):
                     "Circular dependency in parameters of model {}", self.name)
 
         self.parameters = sorted_parameters
+        self.sync_name_to_position_dict()
 
     @staticmethod
     def from_ufo_model(ufo_model_path: str) -> Model:
