@@ -118,6 +118,9 @@ pytest --pyargs ufo_model_loader_tests
 - `--simplify / --no-simplify`  
   Remove zero contributions in the model given specified restriction. Default: enabled.
 
+- `--wrap_indices_in_lorentz_structures`
+  Wrap indices in Lorentz structures when exporting. This is in particular useful for spin-2 models, mapping <1 or 2>00<p_id> conventions to idx(1 or 2, p_id).Default: disabled.
+
 - `--output_model_path, -o`  
   Output path for the JSON model. Defaults to current directory.
 

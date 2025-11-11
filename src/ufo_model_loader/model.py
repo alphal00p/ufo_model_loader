@@ -12,7 +12,7 @@ import json
 import cmath
 
 from ufo_model_loader.common import UFOModelLoaderError, DATA_PATH, logger, UFOMODELLOADER_WARNINGS_ISSUED, UFOModelLoaderWarning, verbose_json_dump, Colour, JSONLook, optionally_lower_external_parameter_name  # type: ignore
-from ufo_model_loader.symbolica_processing import SYMBOLICA_AVAILABLE, expression_to_string_safe, parse_python_expression_safe, evaluate_symbolica_expression, parse_python_expression, expression_to_string, evaluate_symbolica_expression_safe  # type: ignore
+from ufo_model_loader.symbolica_processing import SYMBOLICA_AVAILABLE, expression_to_string_safe, parse_python_expression_safe, evaluate_symbolica_expression, parse_python_expression, expression_to_string, evaluate_symbolica_expression_safe, wrap_indices  # type: ignore
 from ufo_model_loader.param_card import ParamCard  # type: ignore
 
 
@@ -159,8 +159,10 @@ class Propagator(object):
                     raise UFOModelLoaderError(
                         f'Gauge {gauge} not implemented for vector particles')
         else:
-            raise UFOModelLoaderError(
-                f'Particle spin {particle.spin} not implemented')
+            numerator = 'HigherSpinPropagatorNumeratorNotImplemented'
+            denominator = 'HigherSpinPropagatorDenominatorNotImplemented'
+            #raise UFOModelLoaderError(
+            #    f'Particle spin {particle.spin} not implemented')
 
         return Propagator(
             name,
@@ -1067,6 +1069,10 @@ class Model(object):
             if evaluation_round >= Model.MAX_ALLOWED_RECURSION_IN_PARAMETER_EVALUATION:
                 raise UFOModelLoaderError(
                     "Maximum number of allowed recursions in parameter evaluation reached.")
+
+    def wrap_indices_in_lorentz_structures(self) -> None:
+        for lorentz_structure in self.lorentz_structures:
+            lorentz_structure.structure = wrap_indices(lorentz_structure.structure)
 
     def apply_input_param_card(self, input_card: InputParamCard, simplify: bool = False, update: bool = True) -> None:
         # from pprint import pprint

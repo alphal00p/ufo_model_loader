@@ -9,7 +9,7 @@ SYMBOLICA_AVAILABLE = True
 try:
     os.environ["SYMBOLICA_HIDE_BANNER"] = "1"
     import symbolica  # type: ignore
-    from symbolica import Expression, E, S  # type: ignore
+    from symbolica import Expression, E, S, T, AtomType # type: ignore
     _ = Expression.parse("1")  # Just to trigger the banner
     del os.environ["SYMBOLICA_HIDE_BANNER"]
 except BaseException as e:
@@ -156,3 +156,23 @@ def evaluate_symbolica_expression_safe(expr: Expression, evaluation_variables: d
         )
         logger.exception("%s", err_msg)
         raise UFOModelLoaderError(err_msg)
+
+def wrap_indices(structure: Expression) -> Expression:
+    
+    dummy, idx, f_, w___, x_, z___ = E('UFO::dummy'), E('UFO::idx'), E('f_'), E('w___'), E('x_'), E('z___')
+    
+    def wrap_index(index):
+        if index > 999:
+            return idx(int(str(index)) // 1000,int(str(index)) % 1000)
+        elif index >= 0:
+            return idx(1,index)
+        else:
+            return dummy(abs(int(str(index))))
+        
+    wrapped_structure = structure.replace(
+        f_(w___, x_, z___), 
+        f_(w___, x_.hold(T().map(wrap_index)), z___),
+        x_.req_type(AtomType.Num), level_range=(0,0), repeat=True
+    )
+    
+    return wrapped_structure

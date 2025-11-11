@@ -21,6 +21,8 @@ parser.add_argument('--restriction_name', '-r', metavar='restriction_name', type
                             For JSON it will use the param card called <JSON_model_file_name>_<restriction_name>.json file and if not specified, then <JSON_model_file_name>_default.json, and nothing if not found.""")
 parser.add_argument('--simplify', '-s', metavar='simplify', action=argparse.BooleanOptionalAction, default=True,
                     help='Simplify the model given the restriction by merging identical couplings and disabling zero contributions. Default = %(default)s')
+parser.add_argument('--wrap_indices_in_lorentz_structures', metavar='wrap_indices_in_lorentz_structures', action=argparse.BooleanOptionalAction, default=False,
+                    help='Wrap indices in Lorentz structures. This is in particular useful for spin-2 models, mapping <1 or 2>00<p_id> conventions to idx(1 or 2, p_id). Default = %(default)s')
 parser.add_argument('--output_model_path', '-o', metavar='output_model_path', type=str, default=None,
                     help='Output JSON file path <output_model_path>.json to write the model to, with input param card written as <output_model_path>_param_card.json. If not given, it will be written to the current working directory with the name of the input model.')
 parser.add_argument('--json_look', '-j', metavar='json_look', type=str, default='verbose', choices=['compact', 'pretty', 'verbose'],
@@ -67,6 +69,7 @@ def main():
         input_model_path=args.input_model,
         restriction_name=args.restriction_name,
         simplify_model=args.simplify,
+        wrap_indices_in_lorentz_structures=args.wrap_indices_in_lorentz_structures,
     )
     # Export the model
     export_model(

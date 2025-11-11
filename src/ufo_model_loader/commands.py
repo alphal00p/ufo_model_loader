@@ -4,7 +4,7 @@ from ufo_model_loader.common import DATA_PATH, UFOModelLoaderError, UFOMODELLOAD
 from os.path import join as pjoin
 
 
-def load_model(input_model_path: str, restriction_name: str | None, simplify_model: bool) -> tuple[Model, InputParamCard]:
+def load_model(input_model_path: str, restriction_name: str | None, simplify_model: bool, wrap_indices_in_lorentz_structures: bool) -> tuple[Model, InputParamCard]:
 
     INPUT_FORMAT = 'JSON' if input_model_path.upper().endswith('.JSON') else 'UFO'
 
@@ -82,6 +82,11 @@ def load_model(input_model_path: str, restriction_name: str | None, simplify_mod
         model.apply_input_param_card(restriction_card, simplify=simplify_model)
     else:
         logger.info("No restriction applied to model '%s%s%s'",
+                    Colour.GREEN, model_name, Colour.END)
+
+    if wrap_indices_in_lorentz_structures:
+        model.wrap_indices_in_lorentz_structures()
+        logger.info("Wrapped indices in Lorentz structures for model %s%s%s",
                     Colour.GREEN, model_name, Colour.END)
 
     input_param_card = InputParamCard.from_model(model)
