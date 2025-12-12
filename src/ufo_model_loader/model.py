@@ -158,10 +158,18 @@ class Propagator(object):
                 else:
                     raise UFOModelLoaderError(
                         f'Gauge {gauge} not implemented for vector particles')
+        elif particle.spin == 5:  # tensor particle 2s+1=4
+            if particle.is_massive():
+                numerator = 'MassiveTensorPropagatorNumeratorNotImplemented'
+                denominator = 'MassiveTensorPropagatorDenominatorNotImplemented'
+            else:
+                # Assume "dim" is a parameter of the model. Otherwise user could have defined his own propagator anyway.
+                numerator = '(1/2)*( (-2*Metric(1001, 2001)*Metric(1002, 2002))/(-2+dim) + Metric(1001,2002)*Metric(2001,1002) + Metric(1001,1002)*Metric(2001,2002) )'
+                denominator = 'P(1)**2'
         else:
             numerator = 'HigherSpinPropagatorNumeratorNotImplemented'
             denominator = 'HigherSpinPropagatorDenominatorNotImplemented'
-            #raise UFOModelLoaderError(
+            # raise UFOModelLoaderError(
             #    f'Particle spin {particle.spin} not implemented')
 
         return Propagator(
@@ -1074,6 +1082,9 @@ class Model(object):
     def wrap_indices_in_lorentz_structures(self) -> None:
         for lorentz_structure in self.lorentz_structures:
             lorentz_structure.structure = wrap_indices(lorentz_structure.structure)
+        for propagator in self.propagators:
+            propagator.numerator = wrap_indices(propagator.numerator)
+            propagator.denominator = wrap_indices(propagator.denominator)
 
     def apply_input_param_card(self, input_card: InputParamCard, simplify: bool = False, update: bool = True) -> None:
         # from pprint import pprint
