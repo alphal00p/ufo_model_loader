@@ -122,39 +122,39 @@ class Propagator(object):
 
         name = f'{particle.name}_prop{gauge}'
         if particle.spin == -1:  # ghost
-            numerator = '1'
+            numerator = '1j'
             if particle.is_massive():
                 denominator = f'P(1)**2-{particle.mass.name}**2'
             else:
                 denominator = 'P(1)**2'
         elif particle.spin == 1:  # scalar 2s+1=1
             if particle.is_massive():
-                numerator = '1'
+                numerator = '1j'
                 denominator = f'P(1)**2-{particle.mass.name}**2'
             else:
-                numerator = '1'
+                numerator = '1j'
                 denominator = 'P(1)**2'
         elif particle.spin == 2:  # spinor 2s+1=2
             if particle.is_massive():
                 if particle.pdg_code < 0:
-                    numerator = f'-PSlash(1,2)+{particle.mass.name}*Identity(1,2)'
+                    numerator = f'1j*(-PSlash(1,2)+{particle.mass.name}*Identity(1,2))'
                 else:
-                    numerator = f'PSlash(2,1)+{particle.mass.name}*Identity(2,1)'
+                    numerator = f'1j*(PSlash(2,1)+{particle.mass.name}*Identity(2,1))'
                 denominator = f'P(1)**2-{particle.mass.name}**2'
             else:
                 if particle.pdg_code < 0:
-                    numerator = '-PSlash(1,2)'
+                    numerator = '-1j*PSlash(1,2)'
                 else:
-                    numerator = 'PSlash(2,1)'
+                    numerator = '1j*PSlash(2,1)'
                 denominator = 'P(1)**2'
         elif particle.spin == 3:  # vector 2s+1=3
             if particle.is_massive():
-                numerator = f'-Metric(1,2)+P(1)*P(2)/{particle.mass.name}**2'
+                numerator = f'1j*(-Metric(1,2)+P(1)*P(2)/{particle.mass.name}**2)'
                 denominator = f'P(1)**2-{particle.mass.name}**2'
             else:
                 denominator = 'P(1)**2'
                 if gauge == 'Feynman':
-                    numerator = '-Metric(1,2)'
+                    numerator = '1j*(-Metric(1,2))'
                 else:
                     raise UFOModelLoaderError(
                         f'Gauge {gauge} not implemented for vector particles')
@@ -164,7 +164,7 @@ class Propagator(object):
                 denominator = 'MassiveTensorPropagatorDenominatorNotImplemented'
             else:
                 # Assume "dim" is a parameter of the model. Otherwise user could have defined his own propagator anyway.
-                numerator = '(1/2)*( (-2*Metric(1001, 2001)*Metric(1002, 2002))/(-2+dim) + Metric(1001,2002)*Metric(2001,1002) + Metric(1001,1002)*Metric(2001,2002) )'
+                numerator = '1j*((1/2)*( (-2*Metric(1001, 2001)*Metric(1002, 2002))/(-2+dim) + Metric(1001,2002)*Metric(2001,1002) + Metric(1001,1002)*Metric(2001,2002) ))'
                 denominator = 'P(1)**2'
         else:
             numerator = 'HigherSpinPropagatorNumeratorNotImplemented'
