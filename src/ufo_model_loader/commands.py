@@ -4,7 +4,7 @@ from ufo_model_loader.common import DATA_PATH, UFOModelLoaderError, UFOMODELLOAD
 from os.path import join as pjoin
 
 
-def load_model(input_model_path: str, restriction_name: str | None, simplify_model: bool, wrap_indices_in_lorentz_structures: bool) -> tuple[Model, InputParamCard]:
+def load_model(input_model_path: str, restriction_name: str | None, simplify_model: bool, wrap_indices_in_lorentz_structures: bool = False) -> tuple[Model, InputParamCard]:
 
     INPUT_FORMAT = 'JSON' if input_model_path.upper().endswith('.JSON') else 'UFO'
 
