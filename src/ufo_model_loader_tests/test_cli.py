@@ -100,6 +100,54 @@ def test_ufo_model_loader(tmp_path):
         re_loaded_input_param_card_no_b_mass, input_param_card_no_b_mass)
 
 
+def test_sm_with_mu_chemical_potentials_roundtrip(tmp_path):
+    from ufo_model_loader.data.models.sm_with_mu.object_library import Parameter as UFOParameter  # type: ignore
+    from ufo_model_loader.data.models import sm_with_mu  # type: ignore
+
+    loaded_sm_with_mu, input_param_card = load_model(
+        input_model_path='sm_with_mu',
+        restriction_name='full',
+        simplify_model=False,
+    )
+    assert loaded_sm_with_mu is not None
+    assert input_param_card is not None
+
+    electron = loaded_sm_with_mu.get_particle('e-')
+    positron = loaded_sm_with_mu.get_particle('e+')
+    assert electron.chemical_potential is not None
+    assert electron.chemical_potential.name == 'mue'
+    assert positron.chemical_potential is not None
+    assert positron.chemical_potential.name == 'minus_mue'
+
+    ufo_positron = next(p for p in sm_with_mu.all_particles if p.name == 'e+')
+    assert isinstance(ufo_positron.chemical_potential, UFOParameter)
+    assert ufo_positron.chemical_potential.name == 'minus_mue'
+    assert ufo_positron.chemical_potential.value == '-1*(-1*muQ+muLe)'
+    assert ufo_positron.chemical_potential.texname == '-(\\text{mue})'
+    assert not hasattr(ufo_positron.chemical_potential, 'expression')
+    assert any(parameter.name == 'minus_mue' for parameter in sm_with_mu.all_parameters)
+
+    exported_model_path = export_model(
+        model=loaded_sm_with_mu,
+        input_param_card=input_param_card,
+        output_model_path=pjoin(tmp_path, 'sm_with_mu_output_model_test.json'),
+        json_look=JSONLook.COMPACT,
+        allow_overwrite=True,
+    )
+    assert exported_model_path is not None
+
+    reloaded_sm_with_mu, reloaded_param_card = load_model(
+        input_model_path=exported_model_path,
+        restriction_name='full',
+        simplify_model=False,
+    )
+    assert reloaded_sm_with_mu is not None
+    assert reloaded_param_card is not None
+
+    compare_models(reloaded_sm_with_mu, loaded_sm_with_mu)
+    compare_dict_objects(reloaded_param_card, input_param_card)
+
+
 def dict_diff(a, b, *, path="root", rel_tol=None, abs_tol=None):
     """Return None if a == b (deep), else a string describing the first difference.
 

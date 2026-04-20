@@ -434,7 +434,7 @@ class Parameter(object):
 
 
 class SerializableParticle(object):
-    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: str, width: str, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int):
+    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: str, width: str, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, chemical_potential: str | None):
         self.pdg_code: int = pdg_code
         self.name: str = name
         self.antiname: str = antiname
@@ -448,6 +448,7 @@ class SerializableParticle(object):
         self.ghost_number: int = ghost_number
         self.lepton_number: int = lepton_number
         self.y_charge: int = y_charge
+        self.chemical_potential: str | None = chemical_potential
 
     @classmethod
     def from_particle(cls, particle: Particle) -> SerializableParticle:
@@ -459,7 +460,8 @@ class SerializableParticle(object):
             particle.charge,
             particle.ghost_number,
             particle.lepton_number,
-            particle.y_charge
+            particle.y_charge,
+            None if particle.chemical_potential is None else particle.chemical_potential.name
         )
 
     @classmethod
@@ -472,12 +474,13 @@ class SerializableParticle(object):
             dict_repr['charge'],
             dict_repr['ghost_number'],
             dict_repr['lepton_number'],
-            dict_repr['y_charge']
+            dict_repr['y_charge'],
+            dict_repr.get('chemical_potential')
         )
 
 
 class Particle(object):
-    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: Parameter, width: Parameter, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int):
+    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: Parameter, width: Parameter, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, chemical_potential: Parameter | None = None):
         self.pdg_code: int = pdg_code
         self.name: str = name
         self.antiname: str = antiname
@@ -491,10 +494,11 @@ class Particle(object):
         self.ghost_number: int = ghost_number
         self.lepton_number: int = lepton_number
         self.y_charge: int = y_charge
+        self.chemical_potential: Parameter | None = chemical_potential
 
     @staticmethod
     def default() -> Particle:
-        return Particle(0, '', '', 1, 1, Parameter.default(), Parameter.default(), '', '', 0, 0, 0, 0)
+        return Particle(0, '', '', 1, 1, Parameter.default(), Parameter.default(), '', '', 0, 0, 0, 0, None)
 
     def is_ghost(self) -> bool:
         return self.ghost_number != 0
@@ -510,6 +514,10 @@ class Particle(object):
 
     @staticmethod
     def from_ufo_object(model: Model, ufo_object: Any) -> Particle:
+        chemical_potential = None
+        if hasattr(ufo_object, 'chemical_potential') and ufo_object.chemical_potential is not None:
+            chemical_potential = model.get_parameter(
+                ufo_object.chemical_potential.name)
 
         return Particle(
             ufo_object.pdg_code, ufo_object.name, ufo_object.antiname, ufo_object.spin, ufo_object.color,
@@ -520,7 +528,8 @@ class Particle(object):
             ufo_object.charge,
             ufo_object.GhostNumber,
             ufo_object.LeptonNumber,
-            ufo_object.Y if hasattr(ufo_object, 'Y') else 0
+            ufo_object.Y if hasattr(ufo_object, 'Y') else 0,
+            chemical_potential
         )
 
     @staticmethod
@@ -533,7 +542,9 @@ class Particle(object):
             serializable_particle.charge,
             serializable_particle.ghost_number,
             serializable_particle.lepton_number,
-            serializable_particle.y_charge
+            serializable_particle.y_charge,
+            None if serializable_particle.chemical_potential is None else model.get_parameter(
+                serializable_particle.chemical_potential)
         )
 
     def to_serializable_particle(self) -> SerializableParticle:

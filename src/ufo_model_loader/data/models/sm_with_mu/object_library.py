@@ -129,8 +129,17 @@ class Particle(UFOBaseClass):
             raise Exception('%s has no anti particle.' % self.name) 
         outdic = {}
         for k,v in self.__dict__.items():
-            if k not in self.require_args_all:                
+            if k not in self.require_args_all:
                 outdic[k] = -v
+                if isinstance(outdic[k], Parameter):
+                    registered_parameter = next(
+                        (parameter for parameter in all_parameters if parameter.name == outdic[k].name),
+                        None
+                    )
+                    if registered_parameter is None:
+                        all_parameters.append(outdic[k])
+                    else:
+                        outdic[k] = registered_parameter
         if self.color in [1,8]:
             newcolor = self.color
         else:
@@ -162,6 +171,17 @@ class Parameter(UFOBaseClass):
             raise Exception('Need LHA information for external parameter "%s".' % name)
         self.lhablock = lhablock
         self.lhacode = lhacode
+
+    def __neg__(self):
+        negated = self.__class__.__new__(self.__class__)
+        negated.__dict__ = dict(self.__dict__)
+        negated.name = 'minus_%s' % self.name
+        if isinstance(self.value, str):
+            negated.value = '-1*(%s)' % self.value
+        else:
+            negated.value = -self.value
+        negated.texname = '-(%s)' % self.texname
+        return negated
 
 all_vertices = []
 

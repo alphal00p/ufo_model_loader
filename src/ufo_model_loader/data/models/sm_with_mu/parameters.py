@@ -224,6 +224,46 @@ WTau = Parameter(name='WTau',
                  lhablock='DECAY',
                  lhacode=[15])
 
+muB = Parameter(name='muB',
+                nature='external',
+                type='real',
+                value=0.0,
+                texname='\\text{muB}',
+                lhablock='CHEMICALPOTENTIAL',
+                lhacode=[1])
+
+muQ = Parameter(name='muQ',
+                nature='external',
+                type='real',
+                value=0.0,
+                texname='\\text{muQ}',
+                lhablock='CHEMICALPOTENTIAL',
+                lhacode=[2])
+
+muLe = Parameter(name='muLe',
+                 nature='external',
+                 type='real',
+                 value=0.0,
+                 texname='\\text{muLe}',
+                 lhablock='CHEMICALPOTENTIAL',
+                 lhacode=[3])
+
+muLmu = Parameter(name='muLmu',
+                  nature='external',
+                  type='real',
+                  value=0.0,
+                  texname='\\text{muLmu}',
+                  lhablock='CHEMICALPOTENTIAL',
+                  lhacode=[4])
+
+muLtau = Parameter(name='muLtau',
+                   nature='external',
+                   type='real',
+                   value=0.0,
+                   texname='\\text{muLtau}',
+                   lhablock='CHEMICALPOTENTIAL',
+                   lhacode=[5])
+
 CKM1x1 = Parameter(name='CKM1x1',
                    nature='internal',
                    type='complex',
@@ -493,3 +533,99 @@ I4x33 = Parameter(name='I4x33',
                   type='complex',
                   value='CKM3x3*yb',
                   texname='\\text{I4x33}')
+
+muW = Parameter(name='muW',
+                nature='internal',
+                type='real',
+                value='muQ',
+                texname='\\text{muW}')
+
+mughWp = Parameter(name='mughWp',
+                   nature='internal',
+                   type='real',
+                   value='muQ',
+                   texname='\\text{mughWp}')
+
+mughWm = Parameter(name='mughWm',
+                   nature='internal',
+                   type='real',
+                   value='-1*muQ',
+                   texname='\\text{mughWm}')
+
+muve = Parameter(name='muve',
+                 nature='internal',
+                 type='real',
+                 value='muLe',
+                 texname='\\text{muve}')
+
+muvm = Parameter(name='muvm',
+                 nature='internal',
+                 type='real',
+                 value='muLmu',
+                 texname='\\text{muvm}')
+
+muvt = Parameter(name='muvt',
+                 nature='internal',
+                 type='real',
+                 value='muLtau',
+                 texname='\\text{muvt}')
+
+muu = Parameter(name='muu',
+                nature='internal',
+                type='real',
+                value='muB/3+2*muQ/3',
+                texname='\\text{muu}')
+
+muc = Parameter(name='muc',
+                nature='internal',
+                type='real',
+                value='muB/3+2*muQ/3',
+                texname='\\text{muc}')
+
+mut = Parameter(name='mut',
+                nature='internal',
+                type='real',
+                value='muB/3+2*muQ/3',
+                texname='\\text{mut}')
+
+mud = Parameter(name='mud',
+                nature='internal',
+                type='real',
+                value='muB/3-muQ/3',
+                texname='\\text{mud}')
+
+mus = Parameter(name='mus',
+                nature='internal',
+                type='real',
+                value='muB/3-muQ/3',
+                texname='\\text{mus}')
+
+mub = Parameter(name='mub',
+                nature='internal',
+                type='real',
+                value='muB/3-muQ/3',
+                texname='\\text{mub}')
+
+muG = Parameter(name='muG',
+                nature='internal',
+                type='real',
+                value='muQ',
+                texname='\\text{muG}')
+
+mue = Parameter(name='mue',
+                nature='internal',
+                type='real',
+                value='-1*muQ+muLe',
+                texname='\\text{mue}')
+
+mumu = Parameter(name='mumu',
+                 nature='internal',
+                 type='real',
+                 value='-1*muQ+muLmu',
+                 texname='\\text{mumu}')
+
+muta = Parameter(name='muta',
+                 nature='internal',
+                 type='real',
+                 value='-1*muQ+muLtau',
+                 texname='\\text{muta}')
