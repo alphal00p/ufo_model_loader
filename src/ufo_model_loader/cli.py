@@ -19,9 +19,9 @@ parser.add_argument('--input_model', '-i', metavar='input_model_path', type=str,
 parser.add_argument('--restriction_name', '-r', metavar='restriction_name', type=str, default=None,
                     help="""Restriction name to consider. For UFO, it will look for a file restrict_<restriction_name>.dat in the UFO model directory. If not given, it will look for restrict_default.dat and if not found, it will use no restriction. 
                             For JSON it will use the param card called <JSON_model_file_name>_<restriction_name>.json file and if not specified, then <JSON_model_file_name>_default.json, and nothing if not found.""")
-parser.add_argument('--simplify', '-s', metavar='simplify', action=argparse.BooleanOptionalAction, default=True,
+parser.add_argument('--simplify', '-s', action=argparse.BooleanOptionalAction, default=True,
                     help='Simplify the model given the restriction by merging identical couplings and disabling zero contributions. Default = %(default)s')
-parser.add_argument('--wrap_indices_in_lorentz_structures', metavar='wrap_indices_in_lorentz_structures', action=argparse.BooleanOptionalAction, default=False,
+parser.add_argument('--wrap_indices_in_lorentz_structures', action=argparse.BooleanOptionalAction, default=False,
                     help='Wrap indices in Lorentz structures. This is in particular useful for spin-2 models, mapping <1 or 2>00<p_id> conventions to idx(1 or 2, p_id). Default = %(default)s')
 parser.add_argument('--output_model_path', '-o', metavar='output_model_path', type=str, default=None,
                     help='Output JSON file path <output_model_path>.json to write the model to, with input param card written as <output_model_path>_param_card.json. If not given, it will be written to the current working directory with the name of the input model.')
