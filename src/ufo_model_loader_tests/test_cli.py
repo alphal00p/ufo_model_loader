@@ -122,8 +122,8 @@ def test_sm_with_mu_chemical_potentials_roundtrip(tmp_path):
     ufo_positron = next(p for p in sm_with_mu.all_particles if p.name == 'e+')
     assert isinstance(ufo_positron.chemical_potential, UFOParameter)
     assert ufo_positron.chemical_potential.name == 'minus_mue'
-    assert ufo_positron.chemical_potential.value == '-1*(-1*muQ+muLe)'
-    assert ufo_positron.chemical_potential.texname == '-(\\text{mue})'
+    assert ufo_positron.chemical_potential.value == 'muQ-muLe'
+    assert ufo_positron.chemical_potential.texname == '\\text{minus_mue}'
     assert not hasattr(ufo_positron.chemical_potential, 'expression')
     assert any(parameter.name == 'minus_mue' for parameter in sm_with_mu.all_parameters)
 

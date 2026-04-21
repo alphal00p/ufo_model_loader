@@ -629,3 +629,99 @@ muta = Parameter(name='muta',
                  type='real',
                  value='-1*muQ+muLtau',
                  texname='\\text{muta}')
+
+minus_muW = Parameter(name='minus_muW',
+                nature='internal',
+                type='real',
+                value='-1*muQ',
+                texname='\\text{minus_muW}')
+
+minus_mughWp = Parameter(name='minus_mughWp',
+                   nature='internal',
+                   type='real',
+                   value='-1*muQ',
+                   texname='\\text{minus_mughWp}')
+
+minus_mughWm = Parameter(name='minus_mughWm',
+                   nature='internal',
+                   type='real',
+                   value='muQ',
+                   texname='\\text{minus_mughWm}')
+
+minus_muve = Parameter(name='minus_muve',
+                 nature='internal',
+                 type='real',
+                 value='-1*muLe',
+                 texname='\\text{minus_muve}')
+
+minus_muvm = Parameter(name='minus_muvm',
+                 nature='internal',
+                 type='real',
+                 value='-1*muLmu',
+                 texname='\\text{minus_muvm}')
+
+minus_muvt = Parameter(name='minus_muvt',
+                 nature='internal',
+                 type='real',
+                 value='-1*muLtau',
+                 texname='\\text{minus_muvt}')
+
+minus_muu = Parameter(name='minus_muu',
+                nature='internal',
+                type='real',
+                value='-1*muB/3-2*muQ/3',
+                texname='\\text{minus_muu}')
+
+minus_muc = Parameter(name='minus_muc',
+                nature='internal',
+                type='real',
+                value='-1*muB/3-2*muQ/3',
+                texname='\\text{minus_muc}')
+
+minus_mut = Parameter(name='minus_mut',
+                nature='internal',
+                type='real',
+                value='-1*muB/3-2*muQ/3',
+                texname='\\text{minus_mut}')
+
+minus_mud = Parameter(name='minus_mud',
+                nature='internal',
+                type='real',
+                value='-1*muB/3+muQ/3',
+                texname='\\text{minus_mud}')
+
+minus_mus = Parameter(name='minus_mus',
+                nature='internal',
+                type='real',
+                value='-1*muB/3+muQ/3',
+                texname='\\text{minus_mus}')
+
+minus_mub = Parameter(name='minus_mub',
+                nature='internal',
+                type='real',
+                value='-1*muB/3+muQ/3',
+                texname='\\text{minus_mub}')
+
+minus_muG = Parameter(name='minus_muG',
+                nature='internal',
+                type='real',
+                value='-1*muQ',
+                texname='\\text{minus_muG}')
+
+minus_mue = Parameter(name='minus_mue',
+                nature='internal',
+                type='real',
+                value='muQ-muLe',
+                texname='\\text{minus_mue}')
+
+minus_mumu = Parameter(name='minus_mumu',
+                 nature='internal',
+                 type='real',
+                 value='muQ-muLmu',
+                 texname='\\text{minus_mumu}')
+
+minus_muta = Parameter(name='minus_muta',
+                 nature='internal',
+                 type='real',
+                 value='muQ-muLtau',
+                 texname='\\text{minus_muta}')
