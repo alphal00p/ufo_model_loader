@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ufo_model_loader"
-version = "0.1.6"
+version = "0.1.7"
 description = "Tool for loading high-energy physics models in the UFO format and export them in flat JSON format."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,10 +30,15 @@ package-dir = { "" = "src" }
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["ufo_model_loader*", "ufo_model_loader_tests*"]
+exclude = ["*.__pycache__", "*.__pycache__.*"]
+namespaces = false
 
 # include everything under ufo_model_loader/data in the wheel
 [tool.setuptools.package-data]
-ufo_model_loader = ["data/**"]
+ufo_model_loader = ["data/models/**/*.py", "data/models/**/*.dat"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["**/__pycache__/*", "**/*.pyc"]
 
 # optional extras
 [project.optional-dependencies]

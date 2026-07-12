@@ -180,6 +180,22 @@ class Propagator(object):
         )
 
     @staticmethod
+    def from_ufo_object(particle: Particle, ufo_object: Any) -> Propagator:
+        numerator = getattr(ufo_object, 'numerator', None)
+        denominator = getattr(ufo_object, 'denominator', None)
+        if numerator is None or denominator is None:
+            raise UFOModelLoaderError(
+                f"Custom propagator '{getattr(ufo_object, 'name', '<unnamed>')}' "
+                "must define numerator and denominator expressions."
+            )
+        return Propagator(
+            str(getattr(ufo_object, 'name', f'{particle.name}_propagator')),
+            particle,
+            str(numerator),
+            str(denominator),
+        )
+
+    @staticmethod
     def from_serializable_propagator(model: Model, serializable_propagator: SerializablePropagator, ) -> Propagator:
         return Propagator(
             serializable_propagator.name,
@@ -434,7 +450,7 @@ class Parameter(object):
 
 
 class SerializableParticle(object):
-    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: str, width: str, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int):
+    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: str, width: str, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None):
         self.pdg_code: int = pdg_code
         self.name: str = name
         self.antiname: str = antiname
@@ -448,6 +464,9 @@ class SerializableParticle(object):
         self.ghost_number: int = ghost_number
         self.lepton_number: int = lepton_number
         self.y_charge: int = y_charge
+        self.propagating: bool = propagating
+        self.goldstoneboson: bool = goldstoneboson
+        self.propagator: str | None = propagator
 
     @classmethod
     def from_particle(cls, particle: Particle) -> SerializableParticle:
@@ -459,7 +478,10 @@ class SerializableParticle(object):
             particle.charge,
             particle.ghost_number,
             particle.lepton_number,
-            particle.y_charge
+            particle.y_charge,
+            particle.propagating,
+            particle.goldstoneboson,
+            particle.propagator,
         )
 
     @classmethod
@@ -472,12 +494,15 @@ class SerializableParticle(object):
             dict_repr['charge'],
             dict_repr['ghost_number'],
             dict_repr['lepton_number'],
-            dict_repr['y_charge']
+            dict_repr['y_charge'],
+            dict_repr.get('propagating', True),
+            dict_repr.get('goldstoneboson', False),
+            dict_repr.get('propagator'),
         )
 
 
 class Particle(object):
-    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: Parameter, width: Parameter, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int):
+    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: Parameter, width: Parameter, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None):
         self.pdg_code: int = pdg_code
         self.name: str = name
         self.antiname: str = antiname
@@ -491,6 +516,9 @@ class Particle(object):
         self.ghost_number: int = ghost_number
         self.lepton_number: int = lepton_number
         self.y_charge: int = y_charge
+        self.propagating: bool = propagating
+        self.goldstoneboson: bool = goldstoneboson
+        self.propagator: str | None = propagator
 
     @staticmethod
     def default() -> Particle:
@@ -520,7 +548,21 @@ class Particle(object):
             ufo_object.charge,
             ufo_object.GhostNumber,
             ufo_object.LeptonNumber,
-            ufo_object.Y if hasattr(ufo_object, 'Y') else 0
+            ufo_object.Y if hasattr(ufo_object, 'Y') else 0,
+            bool(getattr(ufo_object, 'propagating', True)),
+            bool(getattr(
+                ufo_object,
+                'goldstoneboson',
+                getattr(ufo_object, 'goldstone', False),
+            )),
+            (
+                getattr(getattr(ufo_object, 'propagator', None), 'name', None)
+                or (
+                    str(getattr(ufo_object, 'propagator'))
+                    if getattr(ufo_object, 'propagator', None) is not None
+                    else None
+                )
+            ),
         )
 
     @staticmethod
@@ -533,7 +575,10 @@ class Particle(object):
             serializable_particle.charge,
             serializable_particle.ghost_number,
             serializable_particle.lepton_number,
-            serializable_particle.y_charge
+            serializable_particle.y_charge,
+            serializable_particle.propagating,
+            serializable_particle.goldstoneboson,
+            serializable_particle.propagator,
         )
 
     def to_serializable_particle(self) -> SerializableParticle:
@@ -564,6 +609,64 @@ class Order(object):
         return Order(dict_repr['expansion_order'], dict_repr['hierarchy'], dict_repr['name'])
 
 
+class ModelFunction(object):
+    def __init__(self, name: str, arguments: list[str], expression: str | None):
+        self.name = name
+        self.arguments = arguments
+        self.expression = expression
+
+    @staticmethod
+    def from_ufo_object(ufo_object: Any) -> ModelFunction:
+        return ModelFunction(
+            str(ufo_object.name),
+            [str(argument) for argument in getattr(ufo_object, 'arguments', ())],
+            (
+                None
+                if getattr(ufo_object, 'expression', None) is None
+                else str(ufo_object.expression)
+            ),
+        )
+
+    @staticmethod
+    def from_dict(dict_repr: dict[str, Any]) -> ModelFunction:
+        return ModelFunction(
+            str(dict_repr['name']),
+            [str(argument) for argument in dict_repr.get('arguments', ())],
+            dict_repr.get('expression'),
+        )
+
+
+class ModelFormFactor(object):
+    def __init__(self, name: str, type_name: str | None, value: str | None):
+        self.name = name
+        self.type = type_name
+        self.value = value
+
+    @staticmethod
+    def from_ufo_object(ufo_object: Any) -> ModelFormFactor:
+        return ModelFormFactor(
+            str(ufo_object.name),
+            (
+                None
+                if getattr(ufo_object, 'type', None) is None
+                else str(ufo_object.type)
+            ),
+            (
+                None
+                if getattr(ufo_object, 'value', None) is None
+                else str(ufo_object.value)
+            ),
+        )
+
+    @staticmethod
+    def from_dict(dict_repr: dict[str, Any]) -> ModelFormFactor:
+        return ModelFormFactor(
+            str(dict_repr['name']),
+            dict_repr.get('type'),
+            dict_repr.get('value'),
+        )
+
+
 class SerializableModel(object):
 
     def __init__(self, name: str):
@@ -576,6 +679,8 @@ class SerializableModel(object):
         self.lorentz_structures: list[SerializableLorentzStructure] = []
         self.couplings: list[SerializableCoupling] = []
         self.vertex_rules: list[SerializableVertexRule] = []
+        self.functions: list[ModelFunction] = []
+        self.form_factors: list[ModelFormFactor] = []
 
     @staticmethod
     def from_model(model: Model) -> SerializableModel:
@@ -594,6 +699,8 @@ class SerializableModel(object):
             coupling.to_serializable_coupling() for coupling in model.couplings]
         serializable_model.vertex_rules = [
             vertex_rule.to_serializable_vertex_rule() for vertex_rule in model.vertex_rules]
+        serializable_model.functions = list(model.functions)
+        serializable_model.form_factors = list(model.form_factors)
         return serializable_model
 
     def to_dict(self) -> dict:
@@ -606,7 +713,9 @@ class SerializableModel(object):
             'propagators': [propagator.__dict__ for propagator in self.propagators],
             'lorentz_structures': [lorentz_structure.__dict__ for lorentz_structure in self.lorentz_structures],
             'couplings': [coupling.__dict__ for coupling in self.couplings],
-            'vertex_rules': [vertex_rule.__dict__ for vertex_rule in self.vertex_rules]
+            'vertex_rules': [vertex_rule.__dict__ for vertex_rule in self.vertex_rules],
+            'functions': [function.__dict__ for function in self.functions],
+            'form_factors': [form_factor.__dict__ for form_factor in self.form_factors],
         }
 
     def to_json(self, json_look: JSONLook = JSONLook.VERBOSE) -> str:
@@ -631,6 +740,10 @@ class SerializableModel(object):
             coupling) for coupling in json_model['couplings']]
         serializable_model.vertex_rules = [SerializableVertexRule.from_dict(
             vertex_rule) for vertex_rule in json_model['vertex_rules']]
+        serializable_model.functions = [ModelFunction.from_dict(
+            function) for function in json_model.get('functions', ())]
+        serializable_model.form_factors = [ModelFormFactor.from_dict(
+            form_factor) for form_factor in json_model.get('form_factors', ())]
         return serializable_model
 
 
@@ -650,6 +763,8 @@ class Model(object):
         self.lorentz_structures: list[LorentzStructure] = []
         self.couplings: list[Coupling] = []
         self.vertex_rules: list[VertexRule] = []
+        self.functions: list[ModelFunction] = []
+        self.form_factors: list[ModelFormFactor] = []
 
         self.name_to_position: dict[str, dict[str | int, int]] = {}
 
@@ -836,11 +951,40 @@ class Model(object):
             particle.pdg_code: i for i, particle in enumerate(model.particles)}
         model.set_case_insensitive_particle_dictionary()
 
-        # Load propagators
-        model.propagators = [Propagator.from_particle(
-            particle, 'Feynman') for particle in model.particles]
+        # Load particle-specific custom propagators when supplied by the UFO.
+        # Older UFO models usually omit them, in which case the established
+        # Feynman-gauge defaults remain unchanged.
+        ufo_particles = {
+            str(particle.name): particle for particle in ufo_model.all_particles
+        }
+        declared_propagators = {
+            str(propagator.name): propagator
+            for propagator in getattr(ufo_model, 'all_propagators', ())
+        }
+        model.propagators = []
+        for particle in model.particles:
+            ufo_particle = ufo_particles[particle.name]
+            custom = getattr(ufo_particle, 'propagator', None)
+            if isinstance(custom, str):
+                custom = declared_propagators.get(custom)
+            elif custom is None and particle.propagator is not None:
+                custom = declared_propagators.get(particle.propagator)
+            if custom is None:
+                propagator = Propagator.from_particle(particle, 'Feynman')
+            else:
+                propagator = Propagator.from_ufo_object(particle, custom)
+            particle.propagator = propagator.name
+            model.propagators.append(propagator)
         model.name_to_position['propagators'] = {
             propagator.name: i for i, propagator in enumerate(model.propagators)}
+        model.functions = [
+            ModelFunction.from_ufo_object(function)
+            for function in getattr(ufo_model, 'all_functions', ())
+        ]
+        model.form_factors = [
+            ModelFormFactor.from_ufo_object(form_factor)
+            for form_factor in getattr(ufo_model, 'all_form_factors', ())
+        ]
         # Load Lorentz structures
         model.lorentz_structures = [LorentzStructure.from_ufo_object(
             lorentz) for lorentz in ufo_model.all_lorentz]
@@ -915,6 +1059,9 @@ class Model(object):
 
         model.propagators = [Propagator.from_serializable_propagator(
             model, propagator) for propagator in serializable_model.propagators]
+        for propagator in model.propagators:
+            if propagator.particle.propagator is None:
+                propagator.particle.propagator = propagator.name
         model.lorentz_structures = [LorentzStructure.from_serializable_lorentz_structure(
             lorentz) for lorentz in serializable_model.lorentz_structures]
         model.name_to_position['lorentz_structures'] = {
@@ -927,6 +1074,9 @@ class Model(object):
             model, vertex_rule) for vertex_rule in serializable_model.vertex_rules]
         model.name_to_position['vertex_rules'] = {
             vertex_rule.name: i for i, vertex_rule in enumerate(model.vertex_rules)}
+        model.functions = list(serializable_model.functions)
+        model.form_factors = list(serializable_model.form_factors)
+        model.sync_name_to_position_dict()
 
         return model
 

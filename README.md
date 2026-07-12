@@ -5,8 +5,9 @@ It can:
 
 - Load UFO models or pre-exported JSON models
 - Apply restrictions from parameter cards
-- Evaluates all dependent parameters from input parameters using [Symbolica](https://symbolica.io/)
+- Evaluate all dependent parameters from input parameters using [Symbolica](https://symbolica.io/)
 - Simplify couplings and disable zero contributions
+- Preserve propagating/Goldstone flags, custom propagators, declared functions, and form-factor metadata
 - Export the result as a flat JSON model
 
 Limitations:
@@ -113,13 +114,13 @@ pytest --pyargs ufo_model_loader_tests
   UFO directory or JSON file path to load.
 
 - `--restriction_name, -r`  
-  Restriction to apply (`restrict_<restriction_name>.dat` in UFO or `<model>_<restriction_name>.json`).
+  Restriction to apply (`restrict_<restriction_name>.dat` in UFO or `restrict_<restriction_name>.json` beside a JSON model). Without this option, `restrict_default.dat` or `restrict_default.json` is applied when present. Legacy `<model>_default.json` cards remain accepted.
 
 - `--simplify / --no-simplify`  
   Remove zero contributions in the model given specified restriction. Default: enabled.
 
 - `--wrap_indices_in_lorentz_structures`
-  Wrap indices in Lorentz structures when exporting. This is in particular useful for spin-2 models, mapping <1 or 2>00<p_id> conventions to idx(1 or 2, p_id).Default: disabled.
+  Wrap indices in Lorentz structures when exporting. This is particularly useful for spin-2 models, mapping `<1 or 2>00<p_id>` conventions to `idx(1 or 2, p_id)`. Default: disabled.
 
 - `--output_model_path, -o`  
   Output path for the JSON model. Defaults to current directory.

@@ -65,11 +65,21 @@ def load_model(input_model_path: str, restriction_name: str | None, simplify_mod
                 restriction_card = InputParamCard.from_param_card(
                     param_card=param_card, model=model)
         else:
-            if os.path.isfile(pjoin(model_base_path, f'{model_name}_default.json')):
+            default_restriction_path = pjoin(
+                model_base_path, 'restrict_default.json')
+            legacy_default_restriction_path = pjoin(
+                model_base_path,
+                f'{os.path.splitext(model_name)[0]}_default.json',
+            )
+            if os.path.isfile(default_restriction_path):
                 restriction_card = InputParamCard.from_json_file(
-                    json_path=pjoin(model_base_path, f'{model_name}_default.json'))
+                    json_path=default_restriction_path)
+            elif os.path.isfile(legacy_default_restriction_path):
+                restriction_card = InputParamCard.from_json_file(
+                    json_path=legacy_default_restriction_path)
 
     if restriction_card is not None:
+        model.restriction = restriction_name or 'default'
         if restriction_name is not None:
             logger.info(
                 "Applying restriction %s%s%s to model %s%s%s", Colour.BLUE, restriction_name, Colour.END, Colour.GREEN, model_name, Colour.END)

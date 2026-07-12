@@ -1,8 +1,16 @@
 import math
+import json
 from collections.abc import Mapping, Sequence
 from os.path import join as pjoin
 from ufo_model_loader.common import JSONLook  # type: ignore
 from ufo_model_loader.commands import load_model, export_model, JSONLook  # type: ignore
+from ufo_model_loader.model import Model, Propagator  # type: ignore
+from ufo_model_loader.symbolica_processing import (  # type: ignore
+    evaluate_symbolica_expression_safe,
+    expression_to_string_safe,
+    parse_python_expression_safe,
+)
+from symbolica import S
 from copy import deepcopy
 
 USE_DETAILED_DIFF_COMPARISON = True
@@ -98,6 +106,104 @@ def test_ufo_model_loader(tmp_path):
     compare_models(re_loaded_sm_no_b_mass, loaded_sm_no_b_mass)
     compare_dict_objects(
         re_loaded_input_param_card_no_b_mass, input_param_card_no_b_mass)
+
+
+def test_symbolica_2_complex_evaluation_and_standard_ufo_functions():
+    expression = parse_python_expression_safe(
+        'tan(x) + complexconjugate(y) + cond(c, 3, 5) + Theta(t) + reglogp(r)'
+    )
+    values = {
+        S('UFO::x'): complex(0.25, 0.5),
+        S('UFO::y'): complex(1.5, -2.0),
+        S('UFO::c'): 0j,
+        S('UFO::t'): complex(-2.0, 0.0),
+        S('UFO::r'): complex(-2.0, -0.5),
+    }
+
+    result = evaluate_symbolica_expression_safe(
+        expression,
+        values,
+        Model.get_model_functions(),
+    )
+
+    # cmath is used explicitly because the test point is complex.
+    import cmath
+    expected = (
+        cmath.tan(values[S('UFO::x')])
+        + values[S('UFO::y')].conjugate()
+        + 3
+        + Model.model_function_reglogp([values[S('UFO::r')]])
+    )
+    assert abs(result - expected) < 1.0e-14
+    assert 'UFO::x' in expression_to_string_safe(expression, canonical=False)
+
+
+def test_default_json_restriction_and_extended_metadata_round_trip(tmp_path):
+    model, input_card = load_model(
+        input_model_path='scalars',
+        restriction_name='full',
+        simplify_model=True,
+    )
+    particle = model.particles[0]
+    particle.propagating = False
+    particle.goldstoneboson = True
+    custom = Propagator(
+        'custom_scalar_propagator',
+        particle,
+        'complex(0,1)',
+        'P(1)**2',
+    )
+    model.propagators[0] = custom
+    particle.propagator = custom.name
+
+    output_path = export_model(
+        model=model,
+        input_param_card=input_card,
+        output_model_path=pjoin(tmp_path, 'scalars.json'),
+        json_look=JSONLook.COMPACT,
+        allow_overwrite=True,
+    )
+    assert output_path is not None
+    with open(pjoin(tmp_path, 'restrict_default.json'), 'w', encoding='utf-8') as stream:
+        json.dump({name: [value.real, value.imag] for name, value in input_card.items()}, stream)
+
+    reloaded, _ = load_model(
+        input_model_path=output_path,
+        restriction_name=None,
+        simplify_model=False,
+    )
+
+    reloaded_particle = reloaded.get_particle(particle.name)
+    assert reloaded.restriction == 'default'
+    assert reloaded_particle.propagating is False
+    assert reloaded_particle.goldstoneboson is True
+    assert reloaded_particle.propagator == custom.name
+    assert reloaded.get_propagator(custom.name).particle.name == particle.name
+    assert [function.name for function in reloaded.functions] == [
+        function.name for function in model.functions
+    ]
+
+
+def test_old_serialized_models_default_extended_metadata():
+    model, _ = load_model(
+        input_model_path='scalars',
+        restriction_name='full',
+        simplify_model=True,
+    )
+    payload = model.to_serializable_model().to_dict()
+    payload.pop('functions')
+    payload.pop('form_factors')
+    for particle in payload['particles']:
+        particle.pop('propagating')
+        particle.pop('goldstoneboson')
+        particle.pop('propagator')
+
+    reloaded = Model.from_json(json.dumps(payload))
+
+    assert reloaded.functions == []
+    assert reloaded.form_factors == []
+    assert all(particle.propagating for particle in reloaded.particles)
+    assert all(not particle.goldstoneboson for particle in reloaded.particles)
 
 
 def dict_diff(a, b, *, path="root", rel_tol=None, abs_tol=None):

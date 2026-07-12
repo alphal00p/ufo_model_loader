@@ -29,12 +29,13 @@ def expression_to_string_safe(expr: Expression, canonical=True) -> str:
                 terms_on_new_line=False,
                 color_top_level_sum=False,
                 color_builtin_symbols=False,
-                print_finite_field=False,
+                symmetric_representation_for_finite_field=False,
                 explicit_rational_polynomial=False,
                 number_thousands_separator=None,
                 multiplication_operator='*',
-                square_brackets_for_function=False,
+                function_brackets=('(', ')'),
                 num_exp_as_superscript=False,
+                show_namespaces=True,
             )
     except Exception as exception:  # pylint: disable=broad-except
         raise UFOModelLoaderError(
@@ -111,6 +112,28 @@ def parse_python_expression_safe(expr: str) -> Expression:
         sb_expr = Expression.parse(sanitized_expr, default_namespace='UFO')
         sb_expr = sb_expr.replace(
             E('UFO::complex(x_,y_)'), E('x_+y_ 1𝑖'), repeat=True)
+        # Symbolica 2.x evaluates its built-in function heads directly, while
+        # UFO functions are parsed in the model namespace.  Normalize the
+        # standard UFO spellings once so Expression.evaluate() can handle both
+        # real and complex values without the removed evaluate_complex API.
+        for source, target in (
+            ('UFO::tan(x_)', 'tan(x_)'),
+            ('UFO::acos(x_)', 'acos(x_)'),
+            ('UFO::asin(x_)', 'asin(x_)'),
+            ('UFO::atan(x_)', 'atan(x_)'),
+            ('UFO::complexconjugate(x_)', 'conj(x_)'),
+            ('UFO::cond(x_,y_,z_)', 'if(x_,z_,y_)'),
+            (
+                'UFO::Theta(x_)',
+                'if(x_,(1+x_/sqrt(x_^2))/2,1)',
+            ),
+            ('UFO::reglog(x_)', 'if(x_,log(x_),0)'),
+        ):
+            sb_expr = sb_expr.replace(
+                Expression.parse(source),
+                Expression.parse(target),
+                repeat=True,
+            )
     except Exception as exception:  # pylint: disable=broad-except
         raise UFOModelLoaderError(
             "Symbolica (@%s) failed to parse expression:\n%s\nwith exception:\n%s", symbolica.__file__, sanitized_expr, exception)
@@ -140,9 +163,46 @@ def evaluate_symbolica_expression(expr: Expression, evaluation_variables: dict[E
 
 def evaluate_symbolica_expression_safe(expr: Expression, evaluation_variables: dict[Expression, complex], evaluation_functions: dict[Callable[[Expression], Expression], Callable[[list[complex]], complex]]) -> complex:
     try:
-        res: complex = expr.evaluate_complex(  # type: ignore
-            evaluation_variables, evaluation_functions)  # type: ignore
-        # Small adjustment to avoid havin -0. in either the real or imaginary part
+        # Standard UFO function heads are normalized while parsing. Symbolica
+        # 2.x's evaluate() accepts complex constants directly and replaces the
+        # removed evaluate_complex() entry point.
+        evaluated_expr = expr
+        function_arities = {
+            'Theta': 1,
+            'tan': 1,
+            'acos': 1,
+            'asin': 1,
+            'atan': 1,
+            'complexconjugate': 1,
+            'complex': 2,
+            'cond': 3,
+            'reglog': 1,
+            'reglogp': 1,
+            'reglogm': 1,
+        }
+        for function, callback in evaluation_functions.items():
+            function_name = str(function)
+            arity = function_arities.get(function_name)
+            if arity is None:
+                continue
+            wildcards = tuple(S(f'ufo_eval_arg_{index}_') for index in range(arity))
+
+            def evaluate_call(matches, *, _wildcards=wildcards, _callback=callback):
+                arguments = [
+                    complex(matches[wildcard].evaluate(evaluation_variables))
+                    for wildcard in _wildcards
+                ]
+                return Expression.num(_callback(arguments))
+
+            evaluated_expr = evaluated_expr.replace(
+                function(*wildcards),  # type: ignore
+                evaluate_call,
+                bottom_up=True,
+                rhs_cache_size=0,
+                repeat=True,
+            )
+        res = complex(evaluated_expr.evaluate(evaluation_variables))
+        # Small adjustment to avoid having -0. in either component.
         return complex(0 if abs(res.real) == 0. else res.real,  # type: ignore
                        0 if abs(res.imag) == 0. else res.imag)  # type: ignore
     except BaseException as e:
