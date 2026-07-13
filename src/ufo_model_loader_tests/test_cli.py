@@ -184,6 +184,19 @@ def test_default_json_restriction_and_extended_metadata_round_trip(tmp_path):
     ]
 
 
+def test_capitalized_ufo_goldstone_metadata_is_preserved():
+    model, _ = load_model(
+        input_model_path='sm',
+        restriction_name='full',
+        simplify_model=False,
+    )
+
+    assert model.get_particle('G0').goldstoneboson is True
+    assert model.get_particle('G+').goldstoneboson is True
+    assert model.get_particle('G-').goldstoneboson is True
+    assert model.get_particle('Z').goldstoneboson is False
+
+
 def test_old_serialized_models_default_extended_metadata():
     model, _ = load_model(
         input_model_path='scalars',

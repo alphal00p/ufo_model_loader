@@ -18,6 +18,27 @@ from ufo_model_loader.param_card import ParamCard  # type: ignore
 
 pjoin = os.path.join
 
+
+def _ufo_boolean_attribute(
+    ufo_object: Any,
+    names: tuple[str, ...],
+    *,
+    default: bool,
+) -> bool:
+    """Read one UFO boolean across field-name conventions.
+
+    Several established UFO models pass ``GoldstoneBoson`` and
+    ``Propagating`` through ``**options`` while their object library also
+    installs lowercase default attributes. Prefer the explicitly supplied
+    standard spelling before those defaults.
+    """
+
+    for name in names:
+        if hasattr(ufo_object, name):
+            return bool(getattr(ufo_object, name))
+    return default
+
+
 if SYMBOLICA_AVAILABLE:
     from symbolica import Expression, S  # type: ignore
 
@@ -549,12 +570,16 @@ class Particle(object):
             ufo_object.GhostNumber,
             ufo_object.LeptonNumber,
             ufo_object.Y if hasattr(ufo_object, 'Y') else 0,
-            bool(getattr(ufo_object, 'propagating', True)),
-            bool(getattr(
+            _ufo_boolean_attribute(
                 ufo_object,
-                'goldstoneboson',
-                getattr(ufo_object, 'goldstone', False),
-            )),
+                ('Propagating', 'propagating'),
+                default=True,
+            ),
+            _ufo_boolean_attribute(
+                ufo_object,
+                ('GoldstoneBoson', 'goldstoneboson', 'goldstone'),
+                default=False,
+            ),
             (
                 getattr(getattr(ufo_object, 'propagator', None), 'name', None)
                 or (
