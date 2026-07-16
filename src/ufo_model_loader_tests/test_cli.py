@@ -184,6 +184,65 @@ def test_default_json_restriction_and_extended_metadata_round_trip(tmp_path):
     ]
 
 
+def test_sparse_json_restriction_matches_ufo_restriction(tmp_path):
+    full_model, full_card = load_model(
+        input_model_path='sm',
+        restriction_name='full',
+        simplify_model=True,
+    )
+    output_path = export_model(
+        model=full_model,
+        input_param_card=full_card,
+        output_model_path=pjoin(tmp_path, 'sm.json'),
+        json_look=JSONLook.COMPACT,
+        allow_overwrite=True,
+    )
+    assert output_path is not None
+
+    restricted_ufo, sparse_card = load_model(
+        input_model_path='sm',
+        restriction_name=None,
+        simplify_model=True,
+    )
+    with open(
+        pjoin(tmp_path, 'restrict_default.json'),
+        'w',
+        encoding='utf-8',
+    ) as stream:
+        stream.write(sparse_card.to_json(JSONLook.COMPACT))
+
+    restricted_json, _ = load_model(
+        input_model_path=output_path,
+        restriction_name=None,
+        simplify_model=True,
+    )
+
+    compare_models(restricted_json, restricted_ufo)
+
+
+def test_unrestricted_json_load_evaluates_missing_coupling_values(tmp_path):
+    model, input_card = load_model(
+        input_model_path='sm',
+        restriction_name='full',
+        simplify_model=True,
+    )
+    payload = model.to_serializable_model().to_dict()
+    for coupling in payload['couplings']:
+        coupling['value'] = None
+    model_path = pjoin(tmp_path, 'sm.json')
+    with open(model_path, 'w', encoding='utf-8') as stream:
+        json.dump(payload, stream)
+
+    reloaded, reloaded_card = load_model(
+        input_model_path=model_path,
+        restriction_name='full',
+        simplify_model=True,
+    )
+
+    assert reloaded_card == input_card
+    assert all(coupling.value is not None for coupling in reloaded.couplings)
+
+
 def test_capitalized_ufo_goldstone_metadata_is_preserved():
     model, _ = load_model(
         input_model_path='sm',
