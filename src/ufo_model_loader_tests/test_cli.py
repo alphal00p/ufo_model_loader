@@ -184,7 +184,7 @@ def test_default_json_restriction_and_extended_metadata_round_trip(tmp_path):
     ]
 
 
-def test_sparse_json_restriction_matches_ufo_restriction(tmp_path):
+def test_complete_json_restriction_matches_ufo_restriction(tmp_path):
     full_model, full_card = load_model(
         input_model_path='sm',
         restriction_name='full',
@@ -199,17 +199,22 @@ def test_sparse_json_restriction_matches_ufo_restriction(tmp_path):
     )
     assert output_path is not None
 
-    restricted_ufo, sparse_card = load_model(
+    restricted_ufo, _ = load_model(
         input_model_path='sm',
         restriction_name=None,
         simplify_model=True,
+    )
+    _, complete_card = load_model(
+        input_model_path='sm',
+        restriction_name=None,
+        simplify_model=False,
     )
     with open(
         pjoin(tmp_path, 'restrict_default.json'),
         'w',
         encoding='utf-8',
     ) as stream:
-        stream.write(sparse_card.to_json(JSONLook.COMPACT))
+        stream.write(complete_card.to_json(JSONLook.COMPACT))
 
     restricted_json, _ = load_model(
         input_model_path=output_path,
@@ -218,6 +223,39 @@ def test_sparse_json_restriction_matches_ufo_restriction(tmp_path):
     )
 
     compare_models(restricted_json, restricted_ufo)
+
+
+def test_sparse_json_restriction_preserves_omitted_model_defaults(tmp_path):
+    full_model, full_card = load_model(
+        input_model_path='sm',
+        restriction_name='full',
+        simplify_model=True,
+    )
+    output_path = export_model(
+        model=full_model,
+        input_param_card=full_card,
+        output_model_path=pjoin(tmp_path, 'sm.json'),
+        json_look=JSONLook.COMPACT,
+        allow_overwrite=True,
+    )
+    assert output_path is not None
+
+    with open(
+        pjoin(tmp_path, 'restrict_sparse.json'),
+        'w',
+        encoding='utf-8',
+    ) as stream:
+        json.dump({'MB': [0.0, 0.0]}, stream)
+
+    restricted, _ = load_model(
+        input_model_path=output_path,
+        restriction_name='sparse',
+        simplify_model=True,
+    )
+
+    assert restricted.get_parameter('MB').value == 0j
+    assert restricted.get_parameter('MC').value == full_model.get_parameter('MC').value
+    assert restricted.get_parameter('lamWS').value == full_model.get_parameter('lamWS').value
 
 
 def test_unrestricted_json_load_evaluates_missing_coupling_values(tmp_path):

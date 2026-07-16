@@ -1,6 +1,6 @@
 import os
 from ufo_model_loader.model import Model, InputParamCard, ParamCard  # type: ignore
-from ufo_model_loader.common import DATA_PATH, UFOModelLoaderError, UFOMODELLOADER_WARNINGS_ISSUED, JSONLook, logger, Colour, optionally_lower_external_parameter_name  # type: ignore
+from ufo_model_loader.common import DATA_PATH, UFOModelLoaderError, UFOMODELLOADER_WARNINGS_ISSUED, JSONLook, logger, Colour  # type: ignore
 from os.path import join as pjoin
 
 
@@ -57,8 +57,6 @@ def load_model(input_model_path: str, restriction_name: str | None, simplify_mod
                         f"Restriction file 'restrict_{restriction_name}.json' not found for JSON model '{model_name}' in directory '{model_base_path}'.")
                 restriction_card = InputParamCard.from_json_file(
                     json_path=pjoin(model_base_path, f'restrict_{restriction_name}.json'))
-                restriction_card = _complete_json_restriction_card(
-                    model, restriction_card)
     else:
         if INPUT_FORMAT == 'UFO':
             if os.path.isfile(pjoin(model_base_path, model_name, 'restrict_default.dat')):
@@ -79,9 +77,6 @@ def load_model(input_model_path: str, restriction_name: str | None, simplify_mod
             elif os.path.isfile(legacy_default_restriction_path):
                 restriction_card = InputParamCard.from_json_file(
                     json_path=legacy_default_restriction_path)
-            if restriction_card is not None:
-                restriction_card = _complete_json_restriction_card(
-                    model, restriction_card)
 
     if restriction_card is not None:
         model.restriction = restriction_name or 'default'
@@ -121,25 +116,6 @@ def load_model(input_model_path: str, restriction_name: str | None, simplify_mod
                 Colour.YELLOW, len(model.lorentz_structures), Colour.END
                 )
     return model, input_param_card
-
-
-def _complete_json_restriction_card(
-    model: Model,
-    restriction_card: InputParamCard,
-) -> InputParamCard:
-    """Give sparse JSON restriction cards the same semantics as UFO cards.
-
-    UFO restriction cards are expanded over every external parameter, with
-    omitted entries read as zero.  JSON restriction cards are intentionally
-    sparse, so complete them before applying the restriction to avoid silently
-    retaining unrestricted model defaults.
-    """
-
-    completed = InputParamCard(restriction_card)
-    for parameter in model.get_external_parameters():
-        name = optionally_lower_external_parameter_name(parameter.name)
-        completed.setdefault(name, 0j)
-    return completed
 
 
 def export_model(model: Model, input_param_card: InputParamCard, output_model_path: str | None = None, json_look: JSONLook = JSONLook.VERBOSE, allow_overwrite=False) -> str | None:
