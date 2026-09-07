@@ -15,14 +15,16 @@ def test_sqrt_rewrite_terminates_at_a_canonical_fixed_point():
             replace_from_sqrt,
         )
 
+        # Earlier Symbolica 2 releases retain a distinct sqrt function head.
+        # The loader's normalized contract is the exact half-power expression.
         for source, expected in [
-            ('cmath.sqrt(aS)', 'sqrt(aS)'),
-            ('cmath.sqrt(1+cmath.sqrt(aS))', 'sqrt(1+sqrt(aS))'),
-            ('2*cmath.sqrt(aS)*cmath.sqrt(2)', '2*sqrt(aS)*sqrt(2)'),
-            ('cmath.sqrt(-1)', 'sqrt(-1)'),
+            ('cmath.sqrt(aS)', 'aS^(1/2)'),
+            ('cmath.sqrt(1+cmath.sqrt(aS))', '(1+aS^(1/2))^(1/2)'),
+            ('2*cmath.sqrt(aS)*cmath.sqrt(2)', '2*aS^(1/2)*2^(1/2)'),
+            ('cmath.sqrt(-1)', '(-1)^(1/2)'),
         ]:
             result = parse_python_expression_safe(source)
-            assert result == Expression.parse(expected, default_namespace='UFO')
+            assert result == Expression.parse(expected, default_namespace='UFO'), source
             assert replace_from_sqrt(result) == result
     ''')
     result = subprocess.run(

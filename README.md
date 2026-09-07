@@ -19,6 +19,8 @@ Limitations:
 
 ## Installation
 
+Requires Symbolica 2.0 or newer for native complex evaluation and bottom-up function replacement.
+
 From PyPI:
 
 ```bash
