@@ -53,8 +53,15 @@ def expression_to_string(expr: Expression | None, canonical=True) -> str | None:
 
 
 def replace_from_sqrt(expr: Expression) -> Expression:
-    expr = expr.replace(Expression.parse(
-        'sqrt(x__)'), Expression.parse('x__^(1/2)'), repeat=True)
+    pattern = Expression.parse('sqrt(x__)')
+    replacement = Expression.parse('x__^(1/2)')
+    # Symbolica can canonicalize both spellings to the same power. Repeating
+    # until no match remains would then loop forever; stop at a fixed point.
+    while True:
+        rewritten = expr.replace(pattern, replacement)
+        if rewritten == expr:
+            break
+        expr = rewritten
     str_expr = expression_to_string(expr)
     if str_expr is None or re.match(r'\^\(\d+/\d+\)', str_expr):
         raise UFOModelLoaderError(
