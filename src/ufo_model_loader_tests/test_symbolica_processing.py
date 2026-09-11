@@ -2,7 +2,6 @@ import cmath
 
 import pytest
 from symbolica import E
-
 from ufo_model_loader.commands import load_model
 from ufo_model_loader.symbolica_processing import (
     parse_python_expression_safe,
