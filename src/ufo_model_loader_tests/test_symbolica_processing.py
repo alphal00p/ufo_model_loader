@@ -26,6 +26,11 @@ def test_square_root_parsing_is_finite_and_idempotent(source, expected):
     assert complex(expression.evaluate({E("UFO::x"): 16.0})) == expected
 
 
+@pytest.mark.parametrize(("source", "expected"), (("0.0", "0"), ("x+0.0", "UFO::x")))
+def test_zero_float_uses_regular_numeric_conversion(source, expected):
+    assert parse_python_expression_safe(source).matches(E(expected))
+
+
 @pytest.mark.parametrize("prefix", ("cmath.", ""))
 def test_standard_trigonometric_functions_use_builtin_heads(prefix):
     expression = parse_python_expression_safe(

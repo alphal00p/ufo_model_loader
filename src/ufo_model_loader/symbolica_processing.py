@@ -66,9 +66,7 @@ def replace_pseudo_floats(expression: str) -> str:
 
     def rationalize_float(fl: re.Match[str]) -> Expression:
         fl_eval: float = eval(fl.group())
-        # Work around a bug for 0.0 in symbolica
-        rationalized_fl = Expression.num(
-            fl_eval, 1e-13) if fl_eval != 0. else SBE.num(0)  # type: ignore
+        rationalized_fl = Expression.num(fl_eval, 1e-13)
         rationalized_fl_eval: float = eval(str(rationalized_fl)+'.')
         if UFOModelLoaderWarning.FloatInExpression not in UFOMODELLOADER_WARNINGS_ISSUED:
             UFOMODELLOADER_WARNINGS_ISSUED.add(
