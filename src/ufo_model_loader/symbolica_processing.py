@@ -53,8 +53,8 @@ def expression_to_string(expr: Expression | None, canonical=True) -> str | None:
 
 
 def replace_from_sqrt(expr: Expression) -> Expression:
-    expr = expr.replace(Expression.parse(
-        'sqrt(x__)'), Expression.parse('x__^(1/2)'), repeat=True)
+    # Symbolica normalizes sqrt to a half-power during parsing. Repeating this
+    # now-identical replacement would never finish.
     str_expr = expression_to_string(expr)
     if str_expr is None or re.match(r'\^\(\d+/\d+\)', str_expr):
         raise UFOModelLoaderError(
@@ -107,6 +107,8 @@ def parse_python_expression_safe(expr: str) -> Expression:
         .replace('cmath.pi', '𝜋')\
         .replace('math.sqrt', 'sqrt')\
         .replace('math.pi', '𝜋')
+    for name in ('sin', 'cos', 'asin', 'acos'):
+        sanitized_expr = sanitized_expr.replace(f'cmath.{name}', name)
     sanitized_expr = replace_pseudo_floats(sanitized_expr)
     try:
         sb_expr = Expression.parse(sanitized_expr, default_namespace='UFO')
@@ -117,6 +119,8 @@ def parse_python_expression_safe(expr: str) -> Expression:
         # standard UFO spellings once so Expression.evaluate() can handle both
         # real and complex values without the removed evaluate_complex API.
         for source, target in (
+            ('UFO::sin(x_)', 'sin(x_)'),
+            ('UFO::cos(x_)', 'cos(x_)'),
             ('UFO::tan(x_)', 'tan(x_)'),
             ('UFO::acos(x_)', 'acos(x_)'),
             ('UFO::asin(x_)', 'asin(x_)'),
@@ -232,7 +236,7 @@ def wrap_indices(structure: Expression) -> Expression:
     wrapped_structure = structure.replace(
         f_(w___, x_, z___), 
         f_(w___, x_.hold(T().map(wrap_index)), z___),
-        x_.req_type(AtomType.Num), level_range=(0,0), repeat=True
+        x_.req_type(AtomType.Num), min_level=0, max_level=0, repeat=True
     )
     
     return wrapped_structure

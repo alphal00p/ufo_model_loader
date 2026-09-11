@@ -19,6 +19,12 @@ Limitations:
 
 ## Installation
 
+The development version 0.1.8 targets Symbolica 3.0 and is not yet published
+on PyPI. Until Symbolica 3.0 is released, development testing uses its pinned
+Git sources; those sources may still report version 2.2.0. With that development
+environment already installed, install this checkout with
+`python -m pip install --no-deps .`.
+
 From PyPI:
 
 ```bash
