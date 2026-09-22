@@ -44,7 +44,6 @@ venv/
 ENV/
 TMP/
 out_cards/
-scalar_gravity/
 
 # IDE/editor files
 .vscode/

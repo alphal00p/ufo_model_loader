@@ -83,10 +83,12 @@ exported_model_path = export_model(
 
 ## Built-in models
 
-UFO Model Loader comes with the following built-in models: `sm` and `scalars`, which can be specified as input model directly from their names (the corresponding UFO directories are shipped with the python package).
+UFO Model Loader comes with the following built-in models: `sm`, `scalars`, and `scalar_gravity`, which can be specified as input models directly from their names (the corresponding UFO directories are shipped with the Python package).
 
 The `scalars` model is a purely scalar toy model, with a number of scalars controlled by the environment variable `UFO_SCALARS_MODEL_N_SCALARS`, and all possible n-point interactions mixing these scalars, with `n` given by the environment variable `UFO_SCALARS_MODEL_N_POINT_INTERACTIONS`.
 By default, `UFO_SCALARS_MODEL_N_SCALARS="3"` and `UFO_SCALARS_MODEL_N_POINT_INTERACTIONS="3,4,5,6,7,8,9,10"`.
+
+The `scalar_gravity` model couples a configurable number of scalar fields to a massless spin-2 graviton. The number of scalars is controlled by `UFO_GRAVITY_MODEL_N_SCALARS` and defaults to three.
 
 For example, the following:
 ```bash

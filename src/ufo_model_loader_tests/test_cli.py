@@ -108,6 +108,22 @@ def test_ufo_model_loader(tmp_path):
         re_loaded_input_param_card_no_b_mass, input_param_card_no_b_mass)
 
 
+def test_bundled_scalar_gravity_model():
+    model, input_card = load_model(
+        input_model_path='scalar_gravity',
+        restriction_name=None,
+        simplify_model=False,
+        wrap_indices_in_lorentz_structures=True,
+    )
+
+    assert input_card is not None
+    assert len(model.particles) == 4
+    assert len(model.couplings) == 14
+    assert len(model.lorentz_structures) == 8
+    assert len(model.vertex_rules) == 11
+    assert model.get_particle('graviton').spin == 5
+
+
 def test_symbolica_2_complex_evaluation_and_standard_ufo_functions():
     expression = parse_python_expression_safe(
         'tan(x) + complexconjugate(y) + cond(c, 3, 5) + Theta(t) + reglogp(r)'
