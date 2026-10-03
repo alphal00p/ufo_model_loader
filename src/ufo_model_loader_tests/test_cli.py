@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from os.path import join as pjoin
 from ufo_model_loader.common import JSONLook  # type: ignore
 from ufo_model_loader.commands import load_model, export_model, JSONLook  # type: ignore
-from ufo_model_loader.model import Model, Propagator  # type: ignore
+from ufo_model_loader.model import Model, ParameterNature, Propagator  # type: ignore
 from ufo_model_loader.symbolica_processing import (  # type: ignore
     evaluate_symbolica_expression_safe,
     expression_to_string_safe,
@@ -332,6 +332,78 @@ def test_old_serialized_models_default_extended_metadata():
     assert all(particle.propagating for particle in reloaded.particles)
     assert all(not particle.goldstoneboson for particle in reloaded.particles)
     assert all(particle.chemical_potential is None for particle in reloaded.particles)
+
+
+def test_sm_chemical_potentials_roundtrip(tmp_path):
+    from ufo_model_loader.data.models.sm.object_library import Parameter as UFOParameter  # type: ignore
+    from ufo_model_loader.data.models import sm  # type: ignore
+
+    loaded_sm, input_param_card = load_model(
+        input_model_path='sm',
+        restriction_name='full',
+        simplify_model=False,
+    )
+    assert loaded_sm is not None
+    assert input_param_card is not None
+
+    electron = loaded_sm.get_particle('e-')
+    positron = loaded_sm.get_particle('e+')
+    assert electron.chemical_potential is not None
+    assert electron.chemical_potential.name == 'mue'
+    assert positron.chemical_potential is not None
+    assert positron.chemical_potential.name == 'minus_mue'
+
+    ufo_positron = next(p for p in sm.all_particles if p.name == 'e+')
+    assert isinstance(ufo_positron.chemical_potential, UFOParameter)
+    assert ufo_positron.chemical_potential.name == 'minus_mue'
+    assert ufo_positron.chemical_potential.value == 'muQ-muLe'
+    assert ufo_positron.chemical_potential.texname == '\\text{minus_mue}'
+    assert not hasattr(ufo_positron.chemical_potential, 'expression')
+    assert any(parameter.name == 'minus_mue' for parameter in sm.all_parameters)
+
+    exported_model_path = export_model(
+        model=loaded_sm,
+        input_param_card=input_param_card,
+        output_model_path=pjoin(tmp_path, 'sm_chemical_potentials_output_model_test.json'),
+        json_look=JSONLook.COMPACT,
+        allow_overwrite=True,
+    )
+    assert exported_model_path is not None
+
+    reloaded_sm, reloaded_param_card = load_model(
+        input_model_path=exported_model_path,
+        restriction_name='full',
+        simplify_model=False,
+    )
+    assert reloaded_sm is not None
+    assert reloaded_param_card is not None
+
+    compare_models(reloaded_sm, loaded_sm)
+    compare_dict_objects(reloaded_param_card, input_param_card)
+
+
+def test_sm_chemical_potentials_survive_default_restriction():
+    model, input_param_card = load_model(
+        input_model_path='sm',
+        restriction_name='default',
+        simplify_model=True,
+    )
+    parameter_names = {parameter.name for parameter in model.parameters}
+    particles_with_mu = [
+        particle for particle in model.particles if particle.chemical_potential is not None]
+
+    assert particles_with_mu
+    assert all(
+        particle.chemical_potential.name in parameter_names for particle in particles_with_mu)
+
+    # Simplification freezes zero-valued external parameters to ZERO, so only
+    # the non-zero baryon chemical potential remains adjustable from the card.
+    assert model.get_parameter('muB').nature == ParameterNature.EXTERNAL
+    assert [name for name in input_param_card if name.startswith('mu')] == ['muB']
+    assert model.get_parameter('muQ').nature == ParameterNature.INTERNAL
+    assert model.get_particle('u').chemical_potential.value == 1.
+    assert model.get_particle('u~').chemical_potential.value == -1.
+    assert model.get_particle('e-').chemical_potential.value == 0.
 
 
 def dict_diff(a, b, *, path="root", rel_tol=None, abs_tol=None):
