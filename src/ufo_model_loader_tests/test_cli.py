@@ -367,8 +367,8 @@ def dict_diff(a, b, *, path="root", rel_tol=None, abs_tol=None):
             return f"{path}[{k!r}] only in b"
         # recurse shared keys in stable order
         for k in sorted(a.keys(), key=_kkey):
-            d = dict_diff(a[k], b.get(k, SENTINEL), path=f"{
-                          path}[{k!r}]", rel_tol=rel_tol, abs_tol=abs_tol)
+            d = dict_diff(a[k], b.get(k, SENTINEL), path=f"{path}[{k!r}]",
+                          rel_tol=rel_tol, abs_tol=abs_tol)
             if d:
                 return d
         return None
@@ -378,8 +378,8 @@ def dict_diff(a, b, *, path="root", rel_tol=None, abs_tol=None):
         if len(a) != len(b):
             return f"{path}: length {len(a)} != {len(b)}"
         for i, (ai, bi) in enumerate(zip(a, b)):
-            d = dict_diff(ai, bi, path=f"{
-                          path}[{i}]", rel_tol=rel_tol, abs_tol=abs_tol)
+            d = dict_diff(ai, bi, path=f"{path}[{i}]",
+                          rel_tol=rel_tol, abs_tol=abs_tol)
             if d:
                 return d
         return None
