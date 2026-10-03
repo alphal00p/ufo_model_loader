@@ -39,6 +39,7 @@ MANIFEST
 # Virtual environments
 .env
 .venv
+.venv-release/
 env/
 venv/
 ENV/

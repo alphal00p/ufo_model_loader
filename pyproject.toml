@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=70", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,13 +8,14 @@ version = "0.1.8"
 description = "Tool for loading high-energy physics models in the UFO format and export them in flat JSON format."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Valentin Hirschi", email = "valentin.hirschi@gmail.com" }]
 classifiers = [
     "Programming Language :: Python :: 3.11",
     "Operating System :: OS Independent",
 ]
-dependencies = ["symbolica>=3.0"]
+dependencies = ["symbolica>=3.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/alphal00p/ufo_model_loader"
@@ -42,7 +43,8 @@ ufo_model_loader = ["data/models/**/*.py", "data/models/**/*.dat"]
 
 # optional extras
 [project.optional-dependencies]
-prettyjson = ["jsbeautifier", "pytest"]
+prettyjson = ["jsbeautifier"]
+dev = ["pytest", "build", "twine"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

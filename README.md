@@ -19,11 +19,9 @@ Limitations:
 
 ## Installation
 
-The development version 0.1.8 targets Symbolica 3.0 and is not yet published
-on PyPI. Until Symbolica 3.0 is released, development testing uses its pinned
-Git sources; those sources may still report version 2.2.0. With that development
-environment already installed, install this checkout with
-`python -m pip install --no-deps .`.
+Version 0.1.8 requires Python 3.11 or newer and Symbolica 3.0.0 or newer.
+Symbolica is available on PyPI and is installed automatically as a dependency;
+no separate Git-source installation is needed.
 
 From PyPI:
 
@@ -75,7 +73,7 @@ loaded_sm_no_b_mass, input_param_card_no_b_mass = load_model(
 exported_model_path = export_model(
     model = loaded_sm_no_b_mass,
     input_param_card = input_param_card_no_b_mass,
-    output_model_path = 'sm_no_b_mass_simplified_flat.json'),
+    output_model_path = 'sm_no_b_mass_simplified_flat.json',
     json_look = JSONLook.VERBOSE,
     allow_overwrite = True
 )
@@ -112,10 +110,11 @@ width_scalar_1, width_scalar_2, width_scalar_3, width_scalar_4, width_scalar_5, 
 
 ## Tests
 
-Test your installation with
+Install the test dependencies and test your installation with
 
 ```bash
-pytest --pyargs ufo_model_loader_tests
+python -m pip install "ufo-model-loader[dev,prettyjson]"
+python -m pytest --pyargs ufo_model_loader_tests
 ```
 
 ## Main options
@@ -154,6 +153,20 @@ Clone the repo and install in editable mode:
 ```bash
 git clone https://github.com/alphal00p/ufo_model_loader.git
 cd ufo_model_loader
-pip install -e .[dev]
-pytest
+python -m pip install --upgrade -e ".[dev,prettyjson]"
+python -m pytest
 ```
+
+### Release dry run
+
+From the repository root, build the source distribution and wheel, then check
+their PyPI metadata without uploading anything:
+
+```bash
+python -m build
+python -m twine check dist/*
+```
+
+The `pypi_publish.sh` helper runs these same two steps with `python3`. Activate
+the intended development or release environment before running it. It does not
+delete existing artifacts or upload to PyPI or TestPyPI.
