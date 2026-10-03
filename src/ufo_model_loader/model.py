@@ -471,7 +471,7 @@ class Parameter(object):
 
 
 class SerializableParticle(object):
-    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: str, width: str, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None):
+    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: str, width: str, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None, chemical_potential: str | None = None):
         self.pdg_code: int = pdg_code
         self.name: str = name
         self.antiname: str = antiname
@@ -488,6 +488,7 @@ class SerializableParticle(object):
         self.propagating: bool = propagating
         self.goldstoneboson: bool = goldstoneboson
         self.propagator: str | None = propagator
+        self.chemical_potential: str | None = chemical_potential
 
     @classmethod
     def from_particle(cls, particle: Particle) -> SerializableParticle:
@@ -503,6 +504,7 @@ class SerializableParticle(object):
             particle.propagating,
             particle.goldstoneboson,
             particle.propagator,
+            None if particle.chemical_potential is None else particle.chemical_potential.name,
         )
 
     @classmethod
@@ -519,11 +521,12 @@ class SerializableParticle(object):
             dict_repr.get('propagating', True),
             dict_repr.get('goldstoneboson', False),
             dict_repr.get('propagator'),
+            dict_repr.get('chemical_potential'),
         )
 
 
 class Particle(object):
-    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: Parameter, width: Parameter, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None):
+    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: Parameter, width: Parameter, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None, chemical_potential: Parameter | None = None):
         self.pdg_code: int = pdg_code
         self.name: str = name
         self.antiname: str = antiname
@@ -540,6 +543,7 @@ class Particle(object):
         self.propagating: bool = propagating
         self.goldstoneboson: bool = goldstoneboson
         self.propagator: str | None = propagator
+        self.chemical_potential: Parameter | None = chemical_potential
 
     @staticmethod
     def default() -> Particle:
@@ -559,6 +563,10 @@ class Particle(object):
 
     @staticmethod
     def from_ufo_object(model: Model, ufo_object: Any) -> Particle:
+        chemical_potential = None
+        if hasattr(ufo_object, 'chemical_potential') and ufo_object.chemical_potential is not None:
+            chemical_potential = model.get_parameter(
+                ufo_object.chemical_potential.name)
 
         return Particle(
             ufo_object.pdg_code, ufo_object.name, ufo_object.antiname, ufo_object.spin, ufo_object.color,
@@ -588,6 +596,7 @@ class Particle(object):
                     else None
                 )
             ),
+            chemical_potential,
         )
 
     @staticmethod
@@ -604,6 +613,8 @@ class Particle(object):
             serializable_particle.propagating,
             serializable_particle.goldstoneboson,
             serializable_particle.propagator,
+            None if serializable_particle.chemical_potential is None else model.get_parameter(
+                serializable_particle.chemical_potential),
         )
 
     def to_serializable_particle(self) -> SerializableParticle:

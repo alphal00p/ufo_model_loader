@@ -323,6 +323,7 @@ def test_old_serialized_models_default_extended_metadata():
         particle.pop('propagating')
         particle.pop('goldstoneboson')
         particle.pop('propagator')
+        particle.pop('chemical_potential')
 
     reloaded = Model.from_json(json.dumps(payload))
 
@@ -330,6 +331,7 @@ def test_old_serialized_models_default_extended_metadata():
     assert reloaded.form_factors == []
     assert all(particle.propagating for particle in reloaded.particles)
     assert all(not particle.goldstoneboson for particle in reloaded.particles)
+    assert all(particle.chemical_potential is None for particle in reloaded.particles)
 
 
 def dict_diff(a, b, *, path="root", rel_tol=None, abs_tol=None):
