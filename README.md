@@ -19,7 +19,7 @@ Limitations:
 
 ## Installation
 
-Version 0.1.8 requires Python 3.11 or newer and Symbolica 3.0.0 or newer.
+Version 1.0.0 requires Python 3.11 or newer and Symbolica 3.0.0 or newer.
 Symbolica is available on PyPI and is installed automatically as a dependency;
 no separate Git-source installation is needed.
 
@@ -83,7 +83,9 @@ exported_model_path = export_model(
 
 UFO Model Loader comes with the following built-in models: `sm`, `scalars`, and `scalar_gravity`, which can be specified as input models directly from their names (the corresponding UFO directories are shipped with the Python package).
 
-The `sm` model attaches a chemical potential to every particle that carries baryon number, electric charge, or lepton flavour. The independent chemical potentials are the external parameters `muB`, `muQ`, `muLe`, `muLmu`, and `muLtau` in the `CHEMICALPOTENTIAL` block. By default `muB = 3` and the others are zero; since the default restriction with simplification freezes zero-valued parameters, use the `full` restriction or disable simplification to vary `muQ` or the lepton chemical potentials. Each particle's chemical potential is derived from its charges, and antiparticles carry the opposite value through the corresponding `minus_<name>` parameter.
+The `sm` model attaches a chemical potential to every particle that carries baryon number, electric charge, or lepton flavour. The independent chemical potentials are the external parameters `muB`, `muQ`, `muLe`, `muLmu`, and `muLtau` in the `CHEMICALPOTENTIAL` block. All default to zero for ordinary vacuum use. Since restriction with simplification freezes zero-valued external parameters, load with `simplify_model=False` to vary these inputs, or provide an explicit nonzero parameter card before simplification. Each particle's chemical potential is derived from its charges, and antiparticles carry the opposite value through the corresponding `minus_<name>` parameter. Chemical potentials do not enter vacuum couplings.
+
+Particle electric charges are numeric inside the loader and exported exactly as JSON integers or rational strings such as `"2/3"`. Hypercharges use `Q = T3 + Y/2`: `y_charge` is left-handed for fermions, and the optional `y_charge_right` is right-handed. Charge conjugation swaps these chiralities and negates their values. Missing/undefined hypercharge is `null`, not zero; in particular the real neutral `H` and `G0` fields have no definite hypercharge. The bundled SM metadata matches Symbolica 3.0.0 HepKit's `Model.standard_model()`. Models without these optional fields remain supported, and older numeric JSON charges can still be loaded. Consumers of the 1.0.0 JSON format must accept rational strings and optional hypercharges.
 
 The `scalars` model is a purely scalar toy model, with a number of scalars controlled by the environment variable `UFO_SCALARS_MODEL_N_SCALARS`, and all possible n-point interactions mixing these scalars, with `n` given by the environment variable `UFO_SCALARS_MODEL_N_POINT_INTERACTIONS`.
 By default, `UFO_SCALARS_MODEL_N_SCALARS="3"` and `UFO_SCALARS_MODEL_N_POINT_INTERACTIONS="3,4,5,6,7,8,9,10"`.

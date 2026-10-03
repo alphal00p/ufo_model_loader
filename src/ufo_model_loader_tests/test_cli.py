@@ -324,6 +324,8 @@ def test_old_serialized_models_default_extended_metadata():
         particle.pop('goldstoneboson')
         particle.pop('propagator')
         particle.pop('chemical_potential')
+        particle.pop('y_charge')
+        particle.pop('y_charge_right')
 
     reloaded = Model.from_json(json.dumps(payload))
 
@@ -332,6 +334,8 @@ def test_old_serialized_models_default_extended_metadata():
     assert all(particle.propagating for particle in reloaded.particles)
     assert all(not particle.goldstoneboson for particle in reloaded.particles)
     assert all(particle.chemical_potential is None for particle in reloaded.particles)
+    assert all(particle.y_charge is None for particle in reloaded.particles)
+    assert all(particle.y_charge_right is None for particle in reloaded.particles)
 
 
 def test_sm_chemical_potentials_roundtrip(tmp_path):
@@ -396,14 +400,11 @@ def test_sm_chemical_potentials_survive_default_restriction():
     assert all(
         particle.chemical_potential.name in parameter_names for particle in particles_with_mu)
 
-    # Simplification freezes zero-valued external parameters to ZERO, so only
-    # the non-zero baryon chemical potential remains adjustable from the card.
-    assert model.get_parameter('muB').nature == ParameterNature.EXTERNAL
-    assert [name for name in input_param_card if name.startswith('mu')] == ['muB']
-    assert model.get_parameter('muQ').nature == ParameterNature.INTERNAL
-    assert model.get_particle('u').chemical_potential.value == 1.
-    assert model.get_particle('u~').chemical_potential.value == -1.
-    assert model.get_particle('e-').chemical_potential.value == 0.
+    # Vacuum defaults are all zero; simplification freezes these inputs.
+    assert [name for name in input_param_card if name.startswith('mu')] == []
+    for name in ('muB', 'muQ', 'muLe', 'muLmu', 'muLtau'):
+        assert model.get_parameter(name).nature == ParameterNature.INTERNAL
+    assert all(particle.chemical_potential.value == 0. for particle in particles_with_mu)
 
 
 def dict_diff(a, b, *, path="root", rel_tol=None, abs_tol=None):

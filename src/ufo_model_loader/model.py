@@ -1,6 +1,7 @@
 from __future__ import annotations
 from symbolica import Expression, E, S  # type: ignore
 from collections import Counter
+from fractions import Fraction
 
 import importlib
 import os
@@ -17,6 +18,21 @@ from ufo_model_loader.param_card import ParamCard  # type: ignore
 
 
 pjoin = os.path.join
+
+
+QuantumNumber = int | float | Fraction
+
+
+def _serialize_quantum_number(value: QuantumNumber | None) -> int | str | None:
+    """Keep rational metadata exact in JSON, including legacy decimal floats."""
+    if value is None:
+        return None
+    exact = Fraction(str(value)) if isinstance(value, float) else Fraction(value)
+    return exact.numerator if exact.denominator == 1 else str(exact)
+
+
+def _load_quantum_number(value: QuantumNumber | str | None) -> QuantumNumber | None:
+    return Fraction(value) if isinstance(value, str) else value
 
 
 def _ufo_boolean_attribute(
@@ -471,7 +487,7 @@ class Parameter(object):
 
 
 class SerializableParticle(object):
-    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: str, width: str, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None, chemical_potential: str | None = None):
+    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: str, width: str, texname: str, antitexname: str, charge: QuantumNumber | str, ghost_number: int, lepton_number: int, y_charge: QuantumNumber | str | None, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None, chemical_potential: str | None = None, y_charge_right: QuantumNumber | str | None = None):
         self.pdg_code: int = pdg_code
         self.name: str = name
         self.antiname: str = antiname
@@ -481,10 +497,11 @@ class SerializableParticle(object):
         self.width: str = width
         self.texname: str = texname
         self.antitexname: str = antitexname
-        self.charge: float = charge
+        self.charge = _serialize_quantum_number(_load_quantum_number(charge))
         self.ghost_number: int = ghost_number
         self.lepton_number: int = lepton_number
-        self.y_charge: int = y_charge
+        self.y_charge = _serialize_quantum_number(_load_quantum_number(y_charge))
+        self.y_charge_right = _serialize_quantum_number(_load_quantum_number(y_charge_right))
         self.propagating: bool = propagating
         self.goldstoneboson: bool = goldstoneboson
         self.propagator: str | None = propagator
@@ -505,6 +522,7 @@ class SerializableParticle(object):
             particle.goldstoneboson,
             particle.propagator,
             None if particle.chemical_potential is None else particle.chemical_potential.name,
+            particle.y_charge_right,
         )
 
     @classmethod
@@ -517,16 +535,17 @@ class SerializableParticle(object):
             dict_repr['charge'],
             dict_repr['ghost_number'],
             dict_repr['lepton_number'],
-            dict_repr['y_charge'],
+            dict_repr.get('y_charge'),
             dict_repr.get('propagating', True),
             dict_repr.get('goldstoneboson', False),
             dict_repr.get('propagator'),
             dict_repr.get('chemical_potential'),
+            dict_repr.get('y_charge_right'),
         )
 
 
 class Particle(object):
-    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: Parameter, width: Parameter, texname: str, antitexname: str, charge: float, ghost_number: int, lepton_number: int, y_charge: int, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None, chemical_potential: Parameter | None = None):
+    def __init__(self, pdg_code: int, name: str, antiname: str, spin: int, color: int, mass: Parameter, width: Parameter, texname: str, antitexname: str, charge: QuantumNumber | str, ghost_number: int, lepton_number: int, y_charge: QuantumNumber | str | None, propagating: bool = True, goldstoneboson: bool = False, propagator: str | None = None, chemical_potential: Parameter | None = None, y_charge_right: QuantumNumber | str | None = None):
         self.pdg_code: int = pdg_code
         self.name: str = name
         self.antiname: str = antiname
@@ -536,10 +555,11 @@ class Particle(object):
         self.width: Parameter = width
         self.texname: str = texname
         self.antitexname: str = antitexname
-        self.charge: float = charge
+        self.charge = _load_quantum_number(charge)
         self.ghost_number: int = ghost_number
         self.lepton_number: int = lepton_number
-        self.y_charge: int = y_charge
+        self.y_charge = _load_quantum_number(y_charge)
+        self.y_charge_right = _load_quantum_number(y_charge_right)
         self.propagating: bool = propagating
         self.goldstoneboson: bool = goldstoneboson
         self.propagator: str | None = propagator
@@ -577,7 +597,7 @@ class Particle(object):
             ufo_object.charge,
             ufo_object.GhostNumber,
             ufo_object.LeptonNumber,
-            ufo_object.Y if hasattr(ufo_object, 'Y') else 0,
+            getattr(ufo_object, 'Y', None),
             _ufo_boolean_attribute(
                 ufo_object,
                 ('Propagating', 'propagating'),
@@ -597,6 +617,7 @@ class Particle(object):
                 )
             ),
             chemical_potential,
+            getattr(ufo_object, 'YRight', None),
         )
 
     @staticmethod
@@ -615,6 +636,7 @@ class Particle(object):
             serializable_particle.propagator,
             None if serializable_particle.chemical_potential is None else model.get_parameter(
                 serializable_particle.chemical_potential),
+            serializable_particle.y_charge_right,
         )
 
     def to_serializable_particle(self) -> SerializableParticle:
