@@ -21,6 +21,12 @@ SENTINEL = object()
 def compare_models(modelA, modelB):
     obj1_dict = dict(modelA.to_serializable_model().to_dict())
     obj2_dict = dict(modelB.to_serializable_model().to_dict())
+    # Equal restricted tree views can originate from different source cards.
+    # Source records remain unrestricted; their exact selected-card round trip
+    # is covered separately in test_raw_model_roundtrip.
+    for payload in (obj1_dict, obj2_dict):
+        if payload.get('raw_ufo') is not None:
+            payload['raw_ufo']['metadata'].pop('restriction', None)
     # from pprint import pprint
     # pprint(obj1_dict['parameters'])
     # pprint(obj2_dict['parameters'])

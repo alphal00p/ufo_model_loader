@@ -127,6 +127,8 @@ def parse_python_expression_safe(expr: str) -> Expression:
             ('UFO::asin(x_)', 'asin(x_)'),
             ('UFO::atan(x_)', 'atan(x_)'),
             ('UFO::complexconjugate(x_)', 'conj(x_)'),
+            ('UFO::re(x_)', '(x_+conj(x_))/2'),
+            ('UFO::im(x_)', '(x_-conj(x_))/(2*1𝑖)'),
             ('UFO::cond(x_,y_,z_)', 'if(x_,z_,y_)'),
             (
                 'UFO::Theta(x_)',

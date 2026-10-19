@@ -95,3 +95,12 @@ def test_bundled_sm_loads_with_restriction_and_wrapped_indices():
     )
     assert len(model.vertex_rules) == 117
     assert len(model.lorentz_structures) == 22
+
+
+@pytest.mark.parametrize('value', [2.5, 2 + 3j, -4 - 0.25j])
+@pytest.mark.parametrize('head', ['re', 'im'])
+def test_real_imaginary_projection_uses_complex_dependency_operations(value, head):
+    expression = parse_python_expression_safe(f'{head}(x**2)')
+    actual = complex(expression.evaluate({E('UFO::x'): value}))
+    expected = getattr(complex(value)**2, 'real' if head == 're' else 'imag')
+    assert actual == pytest.approx(expected)

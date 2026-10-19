@@ -21,6 +21,8 @@ parser.add_argument('--restriction_name', '-r', metavar='restriction_name', type
                             For JSON it will use the param card called <JSON_model_file_name>_<restriction_name>.json file and if not specified, then <JSON_model_file_name>_default.json, and nothing if not found.""")
 parser.add_argument('--simplify', '-s', action=argparse.BooleanOptionalAction, default=True,
                     help='Simplify the model given the restriction by merging identical couplings and disabling zero contributions. Default = %(default)s')
+parser.add_argument('--include-counterterm-finite-parts', action=argparse.BooleanOptionalAction, default=True,
+                    help='For UFO imports, include finite CT parameters and CT-only couplings in the normalized view. Full NLO source data is preserved either way. Default = %(default)s')
 parser.add_argument('--wrap_indices_in_lorentz_structures', action=argparse.BooleanOptionalAction, default=False,
                     help='Wrap indices in Lorentz structures. This is in particular useful for spin-2 models, mapping <1 or 2>00<p_id> conventions to idx(1 or 2, p_id). Default = %(default)s')
 parser.add_argument('--output_model_path', '-o', metavar='output_model_path', type=str, default=None,
@@ -70,6 +72,7 @@ def main():
         restriction_name=args.restriction_name,
         simplify_model=args.simplify,
         wrap_indices_in_lorentz_structures=args.wrap_indices_in_lorentz_structures,
+        include_counterterm_finite_parts=args.include_counterterm_finite_parts,
     )
     # Export the model
     export_model(

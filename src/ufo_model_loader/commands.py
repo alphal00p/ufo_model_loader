@@ -1,10 +1,13 @@
 import os
+from dataclasses import replace
+from pathlib import Path
+from ufo_model_loader.raw import raw_restriction
 from ufo_model_loader.model import Model, InputParamCard, ParamCard  # type: ignore
 from ufo_model_loader.common import DATA_PATH, UFOModelLoaderError, UFOMODELLOADER_WARNINGS_ISSUED, JSONLook, logger, Colour  # type: ignore
 from os.path import join as pjoin
 
 
-def load_model(input_model_path: str, restriction_name: str | None, simplify_model: bool, wrap_indices_in_lorentz_structures: bool = False) -> tuple[Model, InputParamCard]:
+def load_model(input_model_path: str, restriction_name: str | None, simplify_model: bool, wrap_indices_in_lorentz_structures: bool = False, *, include_counterterm_finite_parts: bool = True) -> tuple[Model, InputParamCard]:
 
     INPUT_FORMAT = 'JSON' if input_model_path.upper().endswith('.JSON') else 'UFO'
 
@@ -34,7 +37,10 @@ def load_model(input_model_path: str, restriction_name: str | None, simplify_mod
         with open(pjoin(model_base_path, model_name), 'r', encoding='utf-8') as f:
             model = Model.from_json(f.read())
     else:
-        model = Model.from_ufo_model(pjoin(model_base_path, model_name))
+        model = Model.from_ufo_model(
+            pjoin(model_base_path, model_name),
+            include_counterterm_finite_parts=include_counterterm_finite_parts,
+        )
 
     # Make sure to issue warnings again if they were issued before
     UFOMODELLOADER_WARNINGS_ISSUED.clear()
@@ -77,6 +83,16 @@ def load_model(input_model_path: str, restriction_name: str | None, simplify_mod
             elif os.path.isfile(legacy_default_restriction_path):
                 restriction_card = InputParamCard.from_json_file(
                     json_path=legacy_default_restriction_path)
+
+    if INPUT_FORMAT == 'UFO' and model.raw_ufo is not None:
+        # The source representation is unrestricted. Retain original card text
+        # for exact downstream lowering; never substitute rounded tree values.
+        model.raw_ufo = replace(model.raw_ufo, metadata={
+            **model.raw_ufo.metadata,
+            'restriction': raw_restriction(
+                Path(model_base_path) / model_name, restriction_name
+            ),
+        })
 
     if restriction_card is not None:
         model.restriction = restriction_name or 'default'

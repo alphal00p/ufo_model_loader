@@ -3,11 +3,10 @@ from symbolica import Expression, E, S  # type: ignore
 from collections import Counter
 from fractions import Fraction
 
-import importlib
 import os
 from pathlib import Path
-import sys
 from typing import Any, Callable
+from types import ModuleType
 from enum import StrEnum
 import json
 import cmath
@@ -15,6 +14,9 @@ import cmath
 from ufo_model_loader.common import UFOModelLoaderError, DATA_PATH, logger, UFOMODELLOADER_WARNINGS_ISSUED, UFOModelLoaderWarning, verbose_json_dump, Colour, JSONLook, optionally_lower_external_parameter_name  # type: ignore
 from ufo_model_loader.symbolica_processing import SYMBOLICA_AVAILABLE, expression_to_string_safe, parse_python_expression_safe, evaluate_symbolica_expression, parse_python_expression, expression_to_string, evaluate_symbolica_expression_safe, wrap_indices  # type: ignore
 from ufo_model_loader.param_card import ParamCard  # type: ignore
+
+
+from ufo_model_loader.raw import RawUFOModel, capture_raw_ufo_model, imported_ufo_module
 
 
 pjoin = os.path.join
@@ -312,7 +314,7 @@ class Coupling(object):
                     UFOMODELLOADER_WARNINGS_ISSUED.add(
                         UFOModelLoaderWarning.DroppingEpsilonTerms)
                     logger.warning(
-                        "Only finite terms of order ε^0 are retained in model expressions")
+                        "Only finite terms of order ε^0 are retained in normalized tree expressions; use Model.raw_ufo for source Laurent data")
                 expression = ufo_object.value.get(0, '0')
         return Coupling(ufo_object.name, expression, ufo_object.order)
 
@@ -444,7 +446,7 @@ class Parameter(object):
                         UFOMODELLOADER_WARNINGS_ISSUED.add(
                             UFOModelLoaderWarning.DroppingEpsilonTerms)
                         logger.warning(
-                            "Only finite terms of order ε^0 are retained in model expressions")
+                            "Only finite terms of order ε^0 are retained in normalized tree expressions; use Model.raw_ufo for source Laurent data")
                     expression = ufo_object.value.get(0, '0')
             param_expression = expression
             try:
@@ -739,6 +741,8 @@ class SerializableModel(object):
         self.vertex_rules: list[SerializableVertexRule] = []
         self.functions: list[ModelFunction] = []
         self.form_factors: list[ModelFormFactor] = []
+        self.raw_ufo: RawUFOModel | None = None
+        self.raw_ufo_error: str | None = None
 
     @staticmethod
     def from_model(model: Model) -> SerializableModel:
@@ -759,6 +763,8 @@ class SerializableModel(object):
             vertex_rule.to_serializable_vertex_rule() for vertex_rule in model.vertex_rules]
         serializable_model.functions = list(model.functions)
         serializable_model.form_factors = list(model.form_factors)
+        serializable_model.raw_ufo = model.raw_ufo
+        serializable_model.raw_ufo_error = model.raw_ufo_error
         return serializable_model
 
     def to_dict(self) -> dict:
@@ -774,6 +780,8 @@ class SerializableModel(object):
             'vertex_rules': [vertex_rule.__dict__ for vertex_rule in self.vertex_rules],
             'functions': [function.__dict__ for function in self.functions],
             'form_factors': [form_factor.__dict__ for form_factor in self.form_factors],
+            **({'raw_ufo': self.raw_ufo.to_dict()} if self.raw_ufo is not None else {}),
+            **({'raw_ufo_error': self.raw_ufo_error} if self.raw_ufo_error is not None else {}),
         }
 
     def to_json(self, json_look: JSONLook = JSONLook.VERBOSE) -> str:
@@ -802,6 +810,14 @@ class SerializableModel(object):
             function) for function in json_model.get('functions', ())]
         serializable_model.form_factors = [ModelFormFactor.from_dict(
             form_factor) for form_factor in json_model.get('form_factors', ())]
+        if json_model.get('raw_ufo') is not None:
+            serializable_model.raw_ufo = RawUFOModel.from_dict(json_model['raw_ufo'])
+        raw_error = json_model.get('raw_ufo_error')
+        if raw_error is not None and not isinstance(raw_error, str):
+            raise ValueError('raw_ufo_error must be a string or null')
+        if serializable_model.raw_ufo is not None and raw_error is not None:
+            raise ValueError('raw_ufo and raw_ufo_error cannot both be present')
+        serializable_model.raw_ufo_error = raw_error
         return serializable_model
 
 
@@ -823,6 +839,8 @@ class Model(object):
         self.vertex_rules: list[VertexRule] = []
         self.functions: list[ModelFunction] = []
         self.form_factors: list[ModelFormFactor] = []
+        self.raw_ufo: RawUFOModel | None = None
+        self.raw_ufo_error: str | None = None
 
         self.name_to_position: dict[str, dict[str | int, int]] = {}
 
@@ -960,7 +978,7 @@ class Model(object):
         self.sync_name_to_position_dict()
 
     @staticmethod
-    def from_ufo_model(ufo_model_path: str) -> Model:
+    def from_ufo_model(ufo_model_path: str, *, include_counterterm_finite_parts: bool = True) -> Model:
 
         model_path = os.path.abspath(
             pjoin(DATA_PATH, 'models', ufo_model_path))
@@ -969,19 +987,60 @@ class Model(object):
         if not os.path.isdir(model_path):
             raise UFOModelLoaderError(
                 f"UFO model '{ufo_model_path}' cannot be found")
-        sys.path.insert(0, os.path.dirname(model_path))
-        sys.path.insert(0, model_path)
-        model_name = os.path.basename(model_path)
-        ufo_model = importlib.import_module(model_name)
-        del sys.path[0]
-        del sys.path[0]
+        with imported_ufo_module(Path(model_path)) as ufo_model:
+            return Model.from_ufo_module(
+                ufo_model, name=os.path.basename(model_path),
+                include_counterterm_finite_parts=include_counterterm_finite_parts,
+            )
 
-        # Note that this approach does not work because of relative imports in the UFO model __init__.py file
-        # spec = importlib.util.spec_from_file_location(os.path.basename(model_path), pjoin(model_path,'__init__.py'))
-        # ufo_model = importlib.util.module_from_spec(spec)
-        # spec.loader.exec_module(ufo_model)
+    @staticmethod
+    def from_ufo_module(ufo_model: ModuleType, *, name: str | None = None,
+                        include_counterterm_finite_parts: bool = True) -> Model:
+        """Normalize a UFO's tree view and retain its authoritative source records.
 
-        model = Model(model_name)
+        The imported module must be trusted. Use ``imported_ufo_module`` when
+        importing it so original numeric spelling can be retained. The raw view
+        is captured before the finite tree projection and remains unchanged by
+        later parameter updates or tree simplification. Set
+        ``include_counterterm_finite_parts=False`` to omit CT parameters and
+        CT-only couplings from this finite view, without altering raw records.
+        This avoids parsing NLO-only expressions to construct a tree model.
+        """
+        model = Model(name or ufo_model.__name__)
+        try:
+            model.raw_ufo = capture_raw_ufo_model(ufo_model, name=model.name)
+        except (TypeError, ValueError) as error:
+            # Extra metadata ignored by the historical tree loader must not
+            # break tree users. Strict raw import raises this error instead.
+            model.raw_ufo_error = str(error)
+
+        if not isinstance(include_counterterm_finite_parts, bool):
+            raise TypeError('include_counterterm_finite_parts must be a boolean')
+        ct_parameter_ids = {id(p) for p in getattr(ufo_model, 'all_CTparameters', ())}
+        ct_vertex_ids = {id(v) for v in getattr(ufo_model, 'all_CTvertices', ())}
+        ordinary_vertices = [
+            vertex for vertex in ufo_model.all_vertices
+            if id(vertex) not in ct_vertex_ids and type(vertex).__name__ != 'CTVertex'
+        ]
+        ufo_parameters = list(ufo_model.all_parameters)
+        ufo_couplings = list(ufo_model.all_couplings)
+        if not include_counterterm_finite_parts:
+            ufo_parameters = [p for p in ufo_parameters if id(p) not in ct_parameter_ids]
+            # UFO2 permits multiple entries. Preserve every referenced coupling
+            # when selecting the tree view; downstream tensor support is separate.
+            def coupling_objects(value):
+                if isinstance(value, (list, tuple)):
+                    for item in value:
+                        yield from coupling_objects(item)
+                else:
+                    yield value
+            tree_coupling_ids = {
+                id(coupling)
+                for vertex in ordinary_vertices
+                for value in vertex.couplings.values()
+                for coupling in coupling_objects(value)
+            }
+            ufo_couplings = [c for c in ufo_couplings if id(c) in tree_coupling_ids]
 
         # Load coupling orders
         model.orders = [Order.from_ufo_object(
@@ -990,10 +1049,10 @@ class Model(object):
             order.name: i for i, order in enumerate(model.orders)}
         # Load parameters
         model.parameters = [Parameter.from_ufo_object(
-            param) for param in ufo_model.all_parameters]
+            param) for param in ufo_parameters]
         model.name_to_position['parameters'] = {
             param.name: i for i, param in enumerate(model.parameters)}
-        if hasattr(ufo_model, 'all_CTparameters'):
+        if include_counterterm_finite_parts and hasattr(ufo_model, 'all_CTparameters'):
             ct_parameters = [Parameter.from_ufo_object(
                 param) for param in ufo_model.all_CTparameters]
             model.name_to_position['parameters'].update({
@@ -1050,12 +1109,29 @@ class Model(object):
             lorentz.name: i for i, lorentz in enumerate(model.lorentz_structures)}
         # Load Couplings
         model.couplings = [Coupling.from_ufo_object(
-            coupling) for coupling in ufo_model.all_couplings]
+            coupling) for coupling in ufo_couplings]
         model.name_to_position['couplings'] = {
             coupling.name: i for i, coupling in enumerate(model.couplings)}
+        if not include_counterterm_finite_parts:
+            excluded_symbols = {
+                S(f'UFO::{parameter.name}')
+                for parameter in getattr(ufo_model, 'all_CTparameters', ())
+            }
+            for item in [*model.parameters, *model.couplings]:
+                if item.expression is not None:
+                    dependencies = excluded_symbols.intersection(
+                        item.expression.get_all_symbols(False)
+                    )
+                    if dependencies:
+                        raise UFOModelLoaderError(
+                            f"Finite tree expression {item.name} references counterterm "
+                            f"parameters {', '.join(sorted(map(str, dependencies)))}; "
+                            "use include_counterterm_finite_parts=True or raw UFO data"
+                        )
+
         # Load Vertices (ignore counterterms)
         model.vertex_rules = [VertexRule.from_ufo_object(
-            model, vertex) for vertex in ufo_model.all_vertices if vertex.__class__.__name__ != 'CTVertex']
+            model, vertex) for vertex in ordinary_vertices]
         model.name_to_position['vertex_rules'] = {
             vertex_rule.name: i for i, vertex_rule in enumerate(model.vertex_rules)}
 
@@ -1134,6 +1210,8 @@ class Model(object):
             vertex_rule.name: i for i, vertex_rule in enumerate(model.vertex_rules)}
         model.functions = list(serializable_model.functions)
         model.form_factors = list(serializable_model.form_factors)
+        model.raw_ufo = serializable_model.raw_ufo
+        model.raw_ufo_error = serializable_model.raw_ufo_error
         model.sync_name_to_position_dict()
 
         return model

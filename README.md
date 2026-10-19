@@ -8,18 +8,19 @@ It can:
 - Evaluate all dependent parameters from input parameters using [Symbolica](https://symbolica.io/)
 - Simplify couplings and disable zero contributions
 - Preserve propagating/Goldstone flags, custom propagators, particle chemical potentials, declared functions, and form-factor metadata
-- Export the result as a flat JSON model
+- Preserve lossless NLO source records, including UV/R2 vertices and Laurent-valued parameters/couplings
+- Export the finite tree view and optional source records in one JSON model
 
 Limitations:
 
-- Only tree-level information is being retained and exported
+- Normalized `Model.parameters`, `couplings` and `vertex_rules` remain a finite tree view; NLO consumers use `Model.raw_ufo`. The loader preserves NLO data but does not evaluate loops or certify a model’s renormalization completeness.
 - Current version only supports export of model expression in the [Symbolica](https://symbolica.io/) notation
 
 ---
 
 ## Installation
 
-Version 1.0.0 requires Python 3.11 or newer and Symbolica 3.0.0 or newer.
+Version 1.0.1 requires Python 3.11 or newer and Symbolica 3.0.0 or newer.
 Symbolica is available on PyPI and is installed automatically as a dependency;
 no separate Git-source installation is needed.
 
@@ -78,6 +79,92 @@ exported_model_path = export_model(
     allow_overwrite = True
 )
 ```
+
+## NLO and exact source data
+
+Since 1.0.1, normal UFO import captures a public immutable `RawUFOModel` before
+finite projection or restriction. It is available as `Model.raw_ufo` and survives
+`Model.to_json()` / `Model.from_json()` and CLI export. Existing tree fields keep
+their meaning. Older JSON without `raw_ufo` loads with `model.raw_ufo is None`.
+Do not use the finite `Model.couplings` expressions to reconstruct counterterms.
+
+For a loop UFO, `include_counterterm_finite_parts=False` selects a true tree view:
+CT parameters and couplings used only by CT vertices are excluded **only from the
+normalized view**, while `raw_ufo` still retains all UV/R2 information. This avoids
+parsing NLO-only expressions (such as complex-mass conditional CT formulas) just
+to obtain the tree model. The default `True` preserves historical access to
+finite CT parameters/couplings. A genuine tree dependency on an excluded CT
+parameter raises. This keyword affects UFO import; a normalized JSON model keeps
+its already stored projection. The CLI exposes the same choice as
+`--no-include-counterterm-finite-parts`.
+
+```python
+from ufo_model_loader.commands import load_model
+from ufo_model_loader.raw import RawUFOModel, load_raw_ufo_model
+
+model, card = load_model(
+    "/path/to/loop_ufo", "full", False,
+    include_counterterm_finite_parts=False,
+)
+source = model.raw_ufo
+if source is None:
+    raise ValueError(model.raw_ufo_error or "JSON contains no source UFO data")
+
+for vertex in source.collections["counterterm_vertices"]:
+    fields = vertex["fields"]
+    print(vertex["id"], vertex["name"], fields["type"])  # UV, UVmass, R2, ...
+    print(fields["couplings"], fields["loop_particles"])
+
+# Lookup by unique name or stable collection-local integer ID.
+first = source.record("counterterm_vertices", 0)
+# Strict source-only import needs no normalized tree model or loop evaluator.
+source_only = load_raw_ufo_model("/path/to/loop_ufo", restriction="full")
+restored = RawUFOModel.from_json(source_only.to_json())
+```
+
+The versioned `ufo-model-source` schema preserves ordered collections for ordinary
+and CT parameters, particles, couplings, ordinary and CT vertices, Lorentz
+structures, coupling orders, functions, propagators and form factors. Each record
+has `id`, `name`, `ufo_type` and unnormalized `fields`. References carry collection,
+ID and name, so duplicate names cannot merge distinct CT vertices. A nonunique
+name lookup raises; indexed lookup remains available.
+
+Expression values retain UFO strings verbatim. Laurent values have
+`{"kind": "laurent", "terms": [[epsilon_power, expression], ...]}`. A scalar
+coupling such as `"g*dZ"` remains a scalar expression referencing the full Laurent
+parameter `dZ`, **not** an inferred epsilon-zero coefficient. Sparse maps use
+`{"kind": "mapping", "entries": [[key, value], ...]}`; tuple keys use
+`{"kind": "tuple", "items": [...]}`. Thus colour × Lorentz × loop-particle-group
+keys, nested alternatives, particle counterterms and directed particle ordering
+survive JSON without projection. Declared model conventions use the same generic
+encoding. Presence diagnostics in `source.capabilities` are an inventory, not a
+physics certificate or a statement that UV/R2 rules are complete.
+
+`source.exact_value(collection, id)` returns a value only when its exact origin
+is established. Direct numeric literals retain their original decimal spelling;
+string expressions and supported compositions of source strings retain their
+contents. Computed or mutated Python values are retained with explicit unproven
+source status, and `exact_value` raises. It never promotes rounded Python floats
+to arbitrary-precision inputs. Explicit exact overrides are available through
+`capture_raw_ufo_model` and `load_raw_ufo_model` without changing the imported
+model objects.
+
+`source.metadata["restriction"]` records the selected original UFO card text and
+`applied=False`: source records are deliberately unrestricted. Later normalized
+parameter updates, simplification, or loading a different JSON parameter card do
+not rewrite this snapshot. NLO consumers must apply their intended restriction
+and parameter state explicitly. `load_raw_ufo_model` uses an optional default
+card when `restriction=None`, no card for `"full"`/`"none"`, and requires a named
+card to exist. Raw source JSON can also be read by `load_raw_ufo_model(path)`;
+restriction or value overrides require the original UFO directory and are
+rejected for this snapshot format.
+
+If extra custom metadata cannot be represented, ordinary tree loading remains
+available with `raw_ufo=None` and an explicit `raw_ufo_error`; strict source-only
+import raises. Malformed `raw_ufo` supplied in JSON raises rather than falling
+back to tree-only data. UFO Python modules are executable code and must be
+trusted. Scoped source import serializes loader imports and restores Python
+module, path, profiler and bytecode state on success and failure.
 
 ## Built-in models
 
