@@ -172,3 +172,32 @@ python -m twine check dist/*
 The `pypi_publish.sh` helper runs these same two steps with `python3`. Activate
 the intended development or release environment before running it. It does not
 delete existing artifacts or upload to PyPI or TestPyPI.
+
+### Publish to PyPI
+
+The manually triggered [Publish to PyPI workflow](https://github.com/alphal00p/ufo_model_loader/actions/workflows/publish.yml)
+builds the wheel and source distribution on `main`, checks their metadata, and
+publishes them using GitHub's OIDC identity. Only the publishing job can request
+an identity token; no PyPI password or API token is stored in the repository.
+
+One-time setup for an owner of the existing PyPI project:
+
+1. Open [the project's Publishing settings](https://pypi.org/manage/project/ufo-model-loader/settings/publishing/).
+2. Add a GitHub trusted publisher with owner `alphal00p`, repository
+   `ufo_model_loader`, workflow filename `publish.yml`, and environment `pypi`.
+   The workflow field takes the filename, not `.github/workflows/publish.yml`.
+3. Ensure the repository has a GitHub environment named `pypi`.
+
+For a release, commit the new `project.version` in `pyproject.toml` to `main` and
+run the workflow with that exact version. For example:
+
+```bash
+gh workflow run publish.yml --repo alphal00p/ufo_model_loader --ref main -f version=1.0.1
+```
+
+The workflow checks the requested version against the source before building.
+Ordinary pushes and pull requests do not trigger publishing. PyPI rejects an
+attempt to replace an already published distribution.
+
+See the [PyPI trusted-publisher setup guide](https://docs.pypi.org/trusted-publishers/adding-a-publisher/)
+for the project-owner registration step.
