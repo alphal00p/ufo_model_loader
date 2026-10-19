@@ -26,6 +26,31 @@ def test_square_root_parsing_is_finite_and_idempotent(source, expected):
     assert complex(expression.evaluate({E("UFO::x"): 16.0})) == expected
 
 
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    (
+        ("cmath.sqrt (4)", "2"),
+        ("math.sqrt\t(16) + cmath.sqrt (9)", "7"),
+        ("cmath.sqrt (cmath.sqrt (16))", "2"),
+        ("complex (0, 1) * x", "1𝑖*UFO::x"),
+        ("custom_function \n (x)", "UFO::custom_function(UFO::x)"),
+    ),
+)
+def test_python_function_call_whitespace(source, expected):
+    assert parse_python_expression_safe(source).matches(E(expected))
+
+
+def test_loop_model_yukawa_coupling_with_spaced_square_root():
+    # loop_sm's R2_ccH uses this valid Python spelling of cmath.sqrt.
+    expression = parse_python_expression_safe(
+        "(-((complex(0,1)*yc)/cmath.sqrt (2)))*(2.0*R2MixedFactor)"
+    )
+    actual = complex(expression.evaluate({
+        E("UFO::yc"): 2.0, E("UFO::R2MixedFactor"): 3.0,
+    }))
+    assert abs(actual - (-1j * 2 / cmath.sqrt(2)) * (2 * 3)) < 1e-14
+
+
 @pytest.mark.parametrize(("source", "expected"), (("0.0", "0"), ("x+0.0", "UFO::x")))
 def test_zero_float_uses_regular_numeric_conversion(source, expected):
     assert parse_python_expression_safe(source).matches(E(expected))

@@ -107,6 +107,9 @@ def parse_python_expression_safe(expr: str) -> Expression:
         .replace('math.pi', '𝜋')
     for name in ('sin', 'cos', 'asin', 'acos'):
         sanitized_expr = sanitized_expr.replace(f'cmath.{name}', name)
+    # Python permits whitespace before a call's opening parenthesis, whereas
+    # Symbolica interprets e.g. `sqrt (2)` as an implicit product.
+    sanitized_expr = re.sub(r'(\b[A-Za-z_]\w*)\s+(?=\()', r'\1', sanitized_expr)
     sanitized_expr = replace_pseudo_floats(sanitized_expr)
     try:
         sb_expr = Expression.parse(sanitized_expr, default_namespace='UFO')
