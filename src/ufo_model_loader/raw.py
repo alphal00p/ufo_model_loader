@@ -54,6 +54,21 @@ _VALUE_COLLECTIONS = {"parameters", "counterterm_parameters", "couplings"}
 _VALUE_TYPES = {"Parameter", "CTParameter", "Coupling", "Function", "Particle"}
 
 
+def is_goldstone_particle(particle: object) -> bool:
+    """Interpret established UFO Goldstone flags without changing source data.
+
+    A true ``GoldstoneBoson``, ``goldstoneboson`` or legacy ``goldstone`` flag
+    marks a Goldstone, even when another spelling contains a false constructor
+    default. This follows MadGraph's UFO import convention, including nonzero
+    numeric legacy flags on antiparticles. Accept UFO objects or raw field
+    mappings; unrelated flags such as ``Propagating`` have separate precedence.
+    """
+    names = ("GoldstoneBoson", "goldstoneboson", "goldstone")
+    if isinstance(particle, Mapping):
+        return any(bool(particle.get(name, False)) for name in names)
+    return any(bool(getattr(particle, name, False)) for name in names)
+
+
 def _runtime_exact(value: object) -> bool:
     """Exact input types, without treating a stored binary64 as decimal input."""
     if isinstance(value, Mapping):
@@ -1005,7 +1020,7 @@ def capture_raw_ufo_model(
         "goldstone_particles": [
             str(p.name)
             for p in particles
-            if bool(getattr(p, "GoldstoneBoson", getattr(p, "goldstoneboson", False)))
+            if is_goldstone_particle(p)
         ],
         "perturbative_orders": [
             str(order.name)

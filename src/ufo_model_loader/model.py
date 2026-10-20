@@ -16,7 +16,7 @@ from ufo_model_loader.symbolica_processing import SYMBOLICA_AVAILABLE, expressio
 from ufo_model_loader.param_card import ParamCard  # type: ignore
 
 
-from ufo_model_loader.raw import RawUFOModel, capture_raw_ufo_model, imported_ufo_module
+from ufo_model_loader.raw import RawUFOModel, capture_raw_ufo_model, imported_ufo_module, is_goldstone_particle
 
 
 pjoin = os.path.join
@@ -605,11 +605,7 @@ class Particle(object):
                 ('Propagating', 'propagating'),
                 default=True,
             ),
-            _ufo_boolean_attribute(
-                ufo_object,
-                ('GoldstoneBoson', 'goldstoneboson', 'goldstone'),
-                default=False,
-            ),
+            is_goldstone_particle(ufo_object),
             (
                 getattr(getattr(ufo_object, 'propagator', None), 'name', None)
                 or (
