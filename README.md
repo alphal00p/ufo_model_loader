@@ -11,6 +11,12 @@ It can:
 - Preserve lossless NLO source records, including UV/R2 vertices and Laurent-valued parameters/couplings
 - Export the finite tree view and optional source records in one JSON model
 
+Goldstone metadata recognizes any truthy `GoldstoneBoson`, `goldstoneboson`, or
+legacy `goldstone` flag, including when another spelling is a false constructor
+default. `ufo_model_loader.raw.is_goldstone_particle` exposes the same
+interpretation for UFO objects and raw field mappings. Raw records retain all
+original flags; `Propagating`/`propagating` precedence is unchanged.
+
 Limitations:
 
 - Normalized `Model.parameters`, `couplings` and `vertex_rules` remain a finite tree view; NLO consumers use `Model.raw_ufo`. The loader preserves NLO data but does not evaluate loops or certify a model’s renormalization completeness.
